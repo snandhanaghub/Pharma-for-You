@@ -1,0 +1,38 @@
+.card {
+  background: white;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
+  padding: 32px;
+}
+
+.card-no-padding {
+  padding: 0;
+}
+
+.card-border-left {
+  border-left: 6px solid;
+}
+
+.card-border-top {
+  border-top: 5px solid;
+}
+
+.card-border-primary {
+  border-color: var(--primary);
+}
+
+.card-border-danger {
+  border-color: var(--danger);
+}
+
+.card-border-moderate {
+  border-color: var(--primary);
+}
+
+.card-border-severe {
+  border-color: var(--danger);
+}
+
+.card-border-mild {
+  border-color: var(--soft-accent);
+}

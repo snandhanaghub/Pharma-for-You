@@ -1,0 +1,46 @@
+.input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.input-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.input {
+  padding: 12px 16px;
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--radius);
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background: white;
+  color: var(--text-body);
+}
+
+.input:focus {
+  border: 2px solid var(--primary);
+  padding: 11px 15px; /* Adjust padding to maintain size */
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:disabled {
+  background: rgba(58, 52, 91, 0.05);
+  cursor: not-allowed;
+}
+
+.input-error {
+  border-color: var(--danger);
+}
+
+.input-error-text {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: -4px;
+}

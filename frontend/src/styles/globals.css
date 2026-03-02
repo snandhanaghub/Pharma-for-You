@@ -1,0 +1,135 @@
+/* GLOBAL DESIGN TOKENS */
+:root {
+  /* Background */
+  --bg-main: #FFFFFF;
+  
+  /* Color Palette */
+  --jacarta: #3A345B;
+  --queen-pink: #F3C8DD;
+  --middle-purple: #D183A9;
+  --old-lavender: #71557A;
+  --brown-chocolate: #4B1535;
+  
+  /* Semantic Colors */
+  --primary: #D183A9;
+  --soft-accent: #F3C8DD;
+  --secondary: #71557A;
+  --danger: #4B1535;
+  
+  /* Text Colors */
+  --text-primary: #3A345B;
+  --text-body: #3A345B;
+  --text-muted: rgba(58, 52, 91, 0.6);
+  
+  /* Border */
+  --border-color: rgba(209, 131, 169, 0.25);
+  --border-color-light: rgba(209, 131, 169, 0.2);
+  --border-color-strong: rgba(209, 131, 169, 0.4);
+  
+  /* Radius */
+  --radius: 16px;
+  --radius-large: 20px;
+  --radius-small: 12px;
+  --radius-pill: 20px;
+  
+  /* Shadows */
+  --shadow-soft: 0 4px 20px rgba(58, 52, 91, 0.08);
+  --shadow-medium: 0 8px 30px rgba(58, 52, 91, 0.12);
+  
+  /* Spacing */
+  --navbar-height: 72px;
+  --sidebar-width: 240px;
+}
+
+/* RESET & BASE STYLES */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-main);
+  color: var(--text-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 48px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 32px;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 24px;
+  line-height: 1.4;
+}
+
+p {
+  color: var(--text-body);
+  line-height: 1.6;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+input, textarea {
+  font-family: inherit;
+  outline: none;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* UTILITY CLASSES */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mt-4 { margin-top: 32px; }
+.mt-5 { margin-top: 40px; }
+
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+.mb-4 { margin-bottom: 32px; }
+.mb-5 { margin-bottom: 40px; }
+
+.p-1 { padding: 8px; }
+.p-2 { padding: 16px; }
+.p-3 { padding: 24px; }
+.p-4 { padding: 32px; }
+.p-5 { padding: 40px; }

@@ -1,0 +1,23 @@
+.severity-badge {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.severity-mild {
+  background: var(--soft-accent);
+  color: var(--text-primary);
+}
+
+.severity-moderate {
+  background: var(--primary);
+  color: white;
+}
+
+.severity-severe {
+  background: var(--danger);
+  color: white;
+}

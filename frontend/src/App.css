@@ -1,0 +1,6 @@
+/* Main App Styles - Design System Applied */
+.App {
+  min-height: 100vh;
+  background: var(--bg-main);
+}
+

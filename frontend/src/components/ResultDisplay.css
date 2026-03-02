@@ -1,0 +1,210 @@
+.result-display {
+  background: rgba(113, 85, 122, 0.35);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(243, 200, 221, 0.2);
+  padding: 2.5rem;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.result-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.result-header h2 {
+  font-size: 2rem;
+  font-family: 'Playfair Display', serif;
+  background: linear-gradient(135deg, #F3C8DD 0%, #D183A9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+.result-count {
+  color: rgba(248, 246, 251, 0.8);
+  font-size: 1rem;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.medicine-card {
+  background: rgba(113, 85, 122, 0.35);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(243, 200, 221, 0.2);
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.medicine-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(209, 131, 169, 0.3);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.medicine-icon {
+  font-size: 2.5rem;
+  background: rgba(248, 246, 251, 0.95);
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.confidence-badge {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 246, 251, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.confidence-badge::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background: conic-gradient(
+    from 0deg,
+    #71557A 0deg,
+    #D183A9 calc(var(--confidence) * 3.6deg),
+    rgba(113, 85, 122, 0.3) calc(var(--confidence) * 3.6deg)
+  );
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.confidence-percentage {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #F8F6FB;
+  line-height: 1;
+}
+
+.confidence-label {
+  font-size: 0.7rem;
+  color: rgba(248, 246, 251, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-content {
+  background: rgba(248, 246, 251, 0.95);
+  padding: 1.5rem;
+  border-radius: 14px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.medicine-name {
+  font-size: 1.75rem;
+  color: #3A345B;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, #D183A9, #F3C8DD) 1;
+  padding-bottom: 0.5rem;
+}
+
+.medicine-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(113, 85, 122, 0.1);
+}
+
+.medicine-detail:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #71557A;
+  font-size: 0.95rem;
+}
+
+.detail-value {
+  color: #3A345B;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.category-badge {
+  background: linear-gradient(135deg, #71557A 0%, #D183A9 100%);
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(113, 85, 122, 0.3);
+}
+
+.result-disclaimer {
+  background: rgba(113, 85, 122, 0.5);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(243, 200, 221, 0.3);
+  border-radius: 14px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.result-disclaimer p {
+  color: #F8F6FB;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.result-disclaimer strong {
+  font-weight: 700;
+  color: #F3C8DD;
+}
+
+@media (max-width: 768px) {
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .result-display {
+    padding: 1.5rem;
+  }
+
+  .medicine-name {
+    font-size: 1.5rem;
+  }
+
+  .confidence-badge {
+    width: 75px;
+    height: 75px;
+  }
+
+  .confidence-percentage {
+    font-size: 1.1rem;
+  }
+}

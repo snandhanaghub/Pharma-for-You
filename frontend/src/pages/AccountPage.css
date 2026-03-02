@@ -1,0 +1,139 @@
+.account-layout {
+  display: flex;
+  min-height: 100vh;
+  padding-top: var(--navbar-height);
+  background: var(--bg-main);
+}
+
+.account-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 60px;
+}
+
+.account-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Profile Card */
+.profile-card {
+  margin-bottom: 48px;
+  box-shadow: var(--shadow-medium);
+}
+
+.profile-content {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.profile-left {
+  flex-shrink: 0;
+}
+
+.profile-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-name {
+  font-size: 24px;
+  color: var(--jacarta);
+}
+
+.profile-email {
+  font-size: 16px;
+}
+
+.account-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  background: var(--secondary);
+  color: white;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color-light);
+}
+
+/* History Section */
+.history-section {
+  margin-top: 48px;
+}
+
+.history-title {
+  font-size: 28px;
+  margin-bottom: 16px;
+  color: var(--jacarta);
+}
+
+.history-divider {
+  height: 1px;
+  background: var(--border-color-light);
+  margin-bottom: 24px;
+}
+
+.history-table-card {
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table thead {
+  background: rgba(243, 200, 221, 0.1);
+}
+
+.history-table th {
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.history-table td {
+  padding: 16px 20px;
+  font-size: 15px;
+  color: var(--text-body);
+}
+
+.history-row {
+  transition: background 0.2s ease;
+}
+
+.history-row:hover {
+  background: rgba(243, 200, 221, 0.08);
+}
+
+.history-row:not(:last-child) {
+  border-bottom: 1px solid var(--border-color-light);
+}
+
+.view-button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.view-button:hover {
+  color: var(--secondary);
+  text-decoration: underline;
+}

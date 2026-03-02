@@ -1,0 +1,161 @@
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-main);
+}
+
+.landing-main {
+  margin-top: var(--navbar-height);
+  flex: 1;
+}
+
+/* Hero Section */
+.hero-section {
+  padding: 80px 0;
+}
+
+.hero-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 60% 40%;
+  gap: 60px;
+  align-items: center;
+}
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hero-title {
+  font-size: 48px;
+  line-height: 1.2;
+  color: var(--jacarta);
+}
+
+.hero-text {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.hero-right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preview-card-wrapper {
+  position: relative;
+  width: 420px;
+}
+
+.preview-blur {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  background: rgba(209, 131, 169, 0.15);
+  border-radius: 50%;
+  filter: blur(60px);
+  z-index: 0;
+}
+
+.preview-card {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.preview-title {
+  margin-bottom: 20px;
+  color: var(--jacarta);
+}
+
+.preview-badge {
+  margin-bottom: 24px;
+}
+
+.preview-ring {
+  display: flex;
+  justify-content: center;
+}
+
+/* Features Section */
+.features-section {
+  padding: 80px 0;
+  background: rgba(243, 200, 221, 0.05);
+}
+
+.features-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.feature-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-medium);
+}
+
+.feature-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.feature-title {
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: var(--jacarta);
+}
+
+.feature-text {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* CTA Section */
+.cta-section {
+  padding: 80px 0;
+}
+
+.cta-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.cta-title {
+  font-size: 36px;
+  margin-bottom: 16px;
+  color: var(--jacarta);
+}
+
+.cta-text {
+  font-size: 18px;
+  margin-bottom: 32px;
+}
