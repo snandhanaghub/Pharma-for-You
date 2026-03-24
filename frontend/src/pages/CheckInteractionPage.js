@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import InputField from '../components/ui/InputField';
 import Button from '../components/ui/Button';
@@ -10,6 +11,7 @@ const CheckInteractionPage = () => {
   const [drugA, setDrugA] = useState('');
   const [drugB, setDrugB] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleSwap = () => {
@@ -18,22 +20,60 @@ const CheckInteractionPage = () => {
     setDrugB(temp);
   };
 
-  const handleAnalyze = (e) => {
+  const handleAnalyze = async (e) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Create a prompt for TinyLlama to check drug interactions
+      const prompt = `Check for drug interactions between ${drugA} and ${drugB}. 
+Provide:
+1. Interaction severity (None/Minor/Moderate/Severe)
+2. Specific interactions
+3. Recommendations
+Keep response concise.`;
+
+      const response = await api.askAI(prompt);
+
+      if (response.success) {
+        // Parse the AI response to determine severity
+        const responseText = response.response.toUpperCase();
+        let severity = 'Unknown';
+        let confidence = 65;
+
+        if (responseText.includes('SEVERE') || responseText.includes('CRITICAL')) {
+          severity = 'Severe';
+          confidence = 95;
+        } else if (responseText.includes('MODERATE')) {
+          severity = 'Moderate';
+          confidence = 85;
+        } else if (responseText.includes('MINOR')) {
+          severity = 'Minor';
+          confidence = 75;
+        } else if (responseText.includes('NO INTERACTION') || responseText.includes('SAFE')) {
+          severity = 'None';
+          confidence = 90;
+        }
+
+        navigate('/result', { 
+          state: { 
+            drugA, 
+            drugB,
+            severity,
+            confidence,
+            aiExplanation: response.response
+          } 
+        });
+      } else {
+        setError(response.error || 'Failed to check interactions. Please try again.');
+      }
+    } catch (err) {
+      console.error('Interaction check error:', err);
+      setError('Error checking drug interactions. Make sure Ollama is running.');
+    } finally {
       setLoading(false);
-      navigate('/result', { 
-        state: { 
-          drugA, 
-          drugB,
-          severity: 'Moderate',
-          confidence: 92
-        } 
-      });
-    }, 1500);
+    }
   };
 
   return (
@@ -45,6 +85,11 @@ const CheckInteractionPage = () => {
           <h1 className="page-title">Check Drug Interaction</h1>
           
           <Card className="check-form-card">
+            {error && (
+              <div className="error-message" style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#ffebee', color: '#c62828', borderRadius: '4px' }}>
+                {error}
+              </div>
+            )}
             <form onSubmit={handleAnalyze} className="check-form">
               <InputField
                 label="Drug A"

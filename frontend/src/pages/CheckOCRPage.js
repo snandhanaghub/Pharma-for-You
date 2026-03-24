@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import * as api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DragDropUpload from '../components/ui/DragDropUpload';
 import Card from '../components/ui/Card';
@@ -22,32 +22,31 @@ const CheckOCRPage = () => {
     setDetectedDrugs([]);
     
     try {
-      // Call the backend OCR API
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+      // Call the backend analyze-medicine endpoint (OCR + Search combo)
+      const response = await api.analyzeMedicineImage(selectedFile);
 
-      const response = await axios.post('/api/ocr/extract', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+      if (response.success && response.extracted_text) {
+        // Split extracted text by common delimiters and filter empty strings
+        const extractedTexts = response.extracted_text
+          .split(/[\n,;]/)
+          .map(text => text.trim())
+          .filter(text => text.length > 2); // Filter very short strings
+        
+        // Remove duplicates
+        const uniqueTexts = [...new Set(extractedTexts)];
+        
+        setDetectedDrugs(uniqueTexts);
+        
+        if (uniqueTexts.length === 0) {
+          setError('No text detected in the image. Please try another image with clear text.');
         }
-      });
-
-      // Extract unique text from OCR results
-      const extractedTexts = response.data.results
-        .map(item => item.text.trim())
-        .filter(text => text.length > 0);
-      
-      // Remove duplicates
-      const uniqueTexts = [...new Set(extractedTexts)];
-      
-      setDetectedDrugs(uniqueTexts);
-      
-      if (uniqueTexts.length === 0) {
-        setError('No text detected in the image. Please try another image with clear text.');
+      } else {
+        setError(response.error || 'Failed to extract text from image.');
+        setDetectedDrugs([]);
       }
     } catch (err) {
       console.error('OCR Error:', err);
-      setError(err.response?.data?.detail || 'Failed to extract text from image. Please try again.');
+      setError(err.message || 'Failed to extract text from image. Please try again.');
       setDetectedDrugs([]);
     } finally {
       setLoading(false);
