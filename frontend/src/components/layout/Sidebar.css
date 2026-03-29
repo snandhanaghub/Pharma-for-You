@@ -4,15 +4,37 @@
   left: 0;
   width: var(--sidebar-width);
   height: calc(100vh - var(--navbar-height));
-  background: white;
+  background: var(--bg-main);
   border-right: 1px solid var(--border-color-light);
-  padding: 24px 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 12px 8px 24px 8px;
+  border-bottom: 2px solid var(--border-color-light);
+  margin-bottom: 16px;
+}
+
+.sidebar-logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-navy);
+  text-decoration: none;
+  display: inline-block;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-logo:hover {
+  opacity: 0.8;
 }
 
 .sidebar-menu {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
 }
 
 .sidebar-item {
@@ -21,7 +43,7 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: var(--radius-small);
-  color: rgba(58, 52, 91, 0.7);
+  color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -29,12 +51,12 @@
 }
 
 .sidebar-item:hover {
-  background: rgba(243, 200, 221, 0.1);
+  background: rgba(45, 86, 82, 0.08);
   color: var(--text-primary);
 }
 
 .sidebar-item-active {
-  background: rgba(243, 200, 221, 0.15);
+  background: rgba(45, 86, 82, 0.12);
   color: var(--text-primary);
 }
 
@@ -55,4 +77,50 @@
 
 .sidebar-label {
   font-size: 15px;
+}
+
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color-light);
+  margin-top: auto;
+}
+
+.sidebar-user {
+  padding: 0 12px;
+}
+
+.sidebar-user-email {
+  font-size: 13px;
+  color: var(--text-muted);
+  word-break: break-all;
+  display: block;
+}
+
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--radius-small);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-logout:hover {
+  background: var(--btn-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(45, 86, 82, 0.2);
+}
+
+.sidebar-logout:active {
+  transform: translateY(0);
 }

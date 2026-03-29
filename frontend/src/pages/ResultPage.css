@@ -1,7 +1,6 @@
 .result-layout {
   display: flex;
   min-height: 100vh;
-  padding-top: var(--navbar-height);
   background: var(--bg-main);
 }
 
@@ -24,7 +23,7 @@
 .result-title {
   font-size: 36px;
   margin-bottom: 16px;
-  color: var(--jacarta);
+  color: var(--text-primary);
 }
 
 .result-card {
@@ -43,12 +42,12 @@
 .result-section-title {
   font-size: 20px;
   margin-bottom: 12px;
-  color: var(--jacarta);
+  color: var(--text-primary);
 }
 
 .result-text {
   line-height: 1.7;
-  color: var(--text-body);
+  color: var(--text-primary);
 }
 
 .confidence-section {

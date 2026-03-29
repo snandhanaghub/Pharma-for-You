@@ -1,47 +1,8 @@
-/* GLOBAL DESIGN TOKENS */
-:root {
-  /* Background */
-  --bg-main: #FFFFFF;
-  
-  /* Color Palette */
-  --jacarta: #3A345B;
-  --queen-pink: #F3C8DD;
-  --middle-purple: #D183A9;
-  --old-lavender: #71557A;
-  --brown-chocolate: #4B1535;
-  
-  /* Semantic Colors */
-  --primary: #D183A9;
-  --soft-accent: #F3C8DD;
-  --secondary: #71557A;
-  --danger: #4B1535;
-  
-  /* Text Colors */
-  --text-primary: #3A345B;
-  --text-body: #3A345B;
-  --text-muted: rgba(58, 52, 91, 0.6);
-  
-  /* Border */
-  --border-color: rgba(209, 131, 169, 0.25);
-  --border-color-light: rgba(209, 131, 169, 0.2);
-  --border-color-strong: rgba(209, 131, 169, 0.4);
-  
-  /* Radius */
-  --radius: 16px;
-  --radius-large: 20px;
-  --radius-small: 12px;
-  --radius-pill: 20px;
-  
-  /* Shadows */
-  --shadow-soft: 0 4px 20px rgba(58, 52, 91, 0.08);
-  --shadow-medium: 0 8px 30px rgba(58, 52, 91, 0.12);
-  
-  /* Spacing */
-  --navbar-height: 72px;
-  --sidebar-width: 240px;
-}
 
-/* RESET & BASE STYLES */
+@import './colors.css';
+
+/* Pharma4U Design System - Global Styles */
+
 * {
   margin: 0;
   padding: 0;
@@ -54,7 +15,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg-main);
-  color: var(--text-body);
+  color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -101,7 +62,6 @@ a {
   color: inherit;
 }
 
-/* UTILITY CLASSES */
 .container {
   max-width: 1280px;
   margin: 0 auto;

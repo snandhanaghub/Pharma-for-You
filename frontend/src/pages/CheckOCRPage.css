@@ -1,7 +1,6 @@
 .check-ocr-layout {
   display: flex;
   min-height: 100vh;
-  padding-top: var(--navbar-height);
   background: var(--bg-main);
 }
 
@@ -38,7 +37,7 @@
 .preview-title {
   font-size: 20px;
   margin-bottom: 24px;
-  color: var(--jacarta);
+  color: var(--text-primary);
 }
 
 .loading-state {
@@ -52,7 +51,7 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(209, 131, 169, 0.2);
+  border: 4px solid rgba(151, 211, 205, 0.2);
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;

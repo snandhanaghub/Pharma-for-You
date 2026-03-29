@@ -7,8 +7,6 @@ const Navbar = ({ variant = 'landing' }) => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo">Pharma4U</Link>
-        
         {variant === 'landing' && (
           <div className="navbar-menu">
             <button className="navbar-link">About</button>
@@ -16,7 +14,7 @@ const Navbar = ({ variant = 'landing' }) => {
             <Link to="/login">
               <Button variant="outline">Login</Button>
             </Link>
-            <Link to="/dashboard">
+            <Link to="/login">
               <Button variant="primary">Get Started</Button>
             </Link>
           </div>

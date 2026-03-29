@@ -1,7 +1,7 @@
 .card {
-  background: white;
+  background: var(--card-bg);
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--card-shadow);
   padding: 32px;
 }
 
@@ -18,21 +18,21 @@
 }
 
 .card-border-primary {
-  border-color: var(--primary);
+  border-color: var(--accent-secondary);
 }
 
 .card-border-danger {
-  border-color: var(--danger);
+  border-color: var(--btn-danger-bg);
 }
 
 .card-border-moderate {
-  border-color: var(--primary);
+  border-color: var(--severity-moderate);
 }
 
 .card-border-severe {
-  border-color: var(--danger);
+  border-color: var(--severity-severe);
 }
 
 .card-border-mild {
-  border-color: var(--soft-accent);
+  border-color: var(--severity-mild);
 }

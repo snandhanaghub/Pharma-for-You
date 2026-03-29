@@ -22,17 +22,14 @@ const CheckOCRPage = () => {
     setDetectedDrugs([]);
     
     try {
-      // Call the backend analyze-medicine endpoint (OCR + Search combo)
       const response = await api.analyzeMedicineImage(selectedFile);
 
       if (response.success && response.extracted_text) {
-        // Split extracted text by common delimiters and filter empty strings
         const extractedTexts = response.extracted_text
           .split(/[\n,;]/)
           .map(text => text.trim())
-          .filter(text => text.length > 2); // Filter very short strings
+          .filter(text => text.length > 2);
         
-        // Remove duplicates
         const uniqueTexts = [...new Set(extractedTexts)];
         
         setDetectedDrugs(uniqueTexts);
@@ -57,15 +54,54 @@ const CheckOCRPage = () => {
     setDetectedDrugs(detectedDrugs.filter(drug => drug !== drugToRemove));
   };
 
-  const handleAnalyze = () => {
-    navigate('/result', { 
-      state: { 
-        drugA: detectedDrugs[0],
-        drugB: detectedDrugs[1],
-        severity: 'Moderate',
-        confidence: 88
-      } 
-    });
+  const handleAnalyze = async () => {
+    if (detectedDrugs.length < 2) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.checkInteractions(detectedDrugs);
+      
+      if (response.success) {
+        // Find highest severity from interactions
+        const severityOrder = { none: 0, moderate: 1, severe: 2, high: 3 };
+        let severity = 'None';
+        let maxLevel = 0;
+        
+        const interactionRows = response.direct_interactions || [];
+        interactionRows.forEach((row) => {
+          const currentSeverity = (row.severity || 'None').toLowerCase();
+          const level = severityOrder[currentSeverity] ?? 0;
+          if (level >= maxLevel) {
+            maxLevel = level;
+            severity = row.severity || 'None';
+          }
+        });
+
+        const interactionSummary = response.interaction_analysis || 'No summary available.';
+        const clinicalExplanation = response.clinical_explanation || 'No clinical explanation available.';
+        const recommendation = response.safety_recommendations || 'Consult your clinician for final guidance.';
+        
+        navigate('/result', { 
+          state: { 
+            drugA: detectedDrugs[0],
+            drugB: detectedDrugs[1],
+            severity,
+            confidence: response.confidence || 85,
+            interactionSummary,
+            clinicalExplanation,
+            recommendation,
+          } 
+        });
+      } else {
+        setError(response.error || 'Failed to check interactions.');
+      }
+    } catch (err) {
+      console.error('OCR Analysis Error:', err);
+      setError('Error checking interactions.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

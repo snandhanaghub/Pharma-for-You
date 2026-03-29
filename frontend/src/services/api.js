@@ -1,7 +1,5 @@
-// API service for connecting to FastAPI backend
 import axios from 'axios';
 
-// Configure API base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 const apiClient = axios.create({
@@ -11,7 +9,6 @@ const apiClient = axios.create({
   },
 });
 
-// Health check
 export const health = async () => {
   try {
     const response = await apiClient.get('/api/health');
@@ -22,7 +19,6 @@ export const health = async () => {
   }
 };
 
-// OCR - Extract text from image
 export const extractTextFromImage = async (file) => {
   try {
     const formData = new FormData();
@@ -40,7 +36,6 @@ export const extractTextFromImage = async (file) => {
   }
 };
 
-// Search - Manual medicine search
 export const searchMedicines = async (query) => {
   try {
     const response = await apiClient.post('/api/search/manual', {
@@ -53,7 +48,6 @@ export const searchMedicines = async (query) => {
   }
 };
 
-// AI - Ask TinyLlama a question
 export const askAI = async (prompt) => {
   try {
     const response = await apiClient.post('/api/ask-ai', null, {
@@ -68,11 +62,27 @@ export const askAI = async (prompt) => {
   }
 };
 
-// Analyze medicine - OCR + Search combo
-export const analyzeMedicineImage = async (file) => {
+export const checkInteractions = async (medicines, description = '') => {
+  try {
+    const response = await apiClient.post('/api/check-interactions', {
+      medicines,
+      description,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Interaction check failed:', error);
+    throw error;
+  }
+};
+
+export const analyzeMedicineImage = async (files) => {
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    if (Array.isArray(files)) {
+      files.forEach((file) => formData.append('files', file));
+    } else {
+      formData.append('files', files);
+    }
 
     const response = await apiClient.post('/api/analyze-medicine', formData, {
       headers: {
@@ -86,11 +96,14 @@ export const analyzeMedicineImage = async (file) => {
   }
 };
 
-// Explain medicine - OCR + AI combo
-export const explainMedicineImage = async (file) => {
+export const explainMedicineImage = async (files) => {
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    if (Array.isArray(files)) {
+      files.forEach((file) => formData.append('files', file));
+    } else {
+      formData.append('files', files);
+    }
 
     const response = await apiClient.post('/api/explain-medicine', formData, {
       headers: {
@@ -104,7 +117,6 @@ export const explainMedicineImage = async (file) => {
   }
 };
 
-// Search by text
 export const searchByText = async (text) => {
   try {
     const response = await apiClient.post('/api/search/selected', {
@@ -113,6 +125,74 @@ export const searchByText = async (text) => {
     return response.data;
   } catch (error) {
     console.error('Text search failed:', error);
+    throw error;
+  }
+};
+
+export const searchMedicinesList = async (query, type = '') => {
+  try {
+    const response = await apiClient.get('/api/medicines/search', {
+      params: { q: query, type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Medicine list search failed:', error);
+    throw error;
+  }
+};
+
+export const submitInteraction = async (data) => {
+  try {
+    const response = await apiClient.post('/api/interactions/submit', data);
+    return response.data;
+  } catch (error) {
+    console.error('Interaction submission failed:', error);
+    throw error;
+  }
+};
+
+export const getPendingInteractions = async () => {
+  try {
+    const response = await apiClient.get('/api/interactions/pending');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch pending interactions:', error);
+    throw error;
+  }
+};
+
+export const approveInteraction = async (id, approvedBy) => {
+  try {
+    const response = await apiClient.post(`/api/interactions/${id}/approve`, {
+      approved_by: approvedBy,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Interaction approval failed:', error);
+    throw error;
+  }
+};
+
+export const rejectInteraction = async (id, approvedBy) => {
+  try {
+    const response = await apiClient.post(`/api/interactions/${id}/reject`, {
+      approved_by: approvedBy,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Interaction rejection failed:', error);
+    throw error;
+  }
+};
+
+export const lookupMedicine = async (id, type = 'allopathy') => {
+  try {
+    const response = await apiClient.get('/api/medicines/lookup', {
+      params: { id, type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Medicine lookup failed:', error);
     throw error;
   }
 };

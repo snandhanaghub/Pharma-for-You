@@ -13,7 +13,6 @@ const ImageUpload = ({ onResults, onError, onLoading }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       onError('Please select a valid image file (JPG, JPEG, or PNG)');
       return;
@@ -24,7 +23,6 @@ const ImageUpload = ({ onResults, onError, onLoading }) => {
     onResults(null);
     onError(null);
 
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);

@@ -1,0 +1,114 @@
+/* ============================================
+   PHARMA4U COLOR SYSTEM
+   Central palette & semantic mapping
+   ============================================ */
+
+:root {
+  /* --- RAW PALETTE --- */
+  --color-navy: #0C2C47;
+  --color-green: #2D5652;
+  --color-yellow: #E2A54D;
+  --color-aqua: #97D3CD;
+  --color-neutral: #EFEAE6;
+  --color-light-neutral: #E4E2EA;
+  --color-white: #FFFFFF;
+  
+  /* --- SEMANTIC MAPPING --- */
+  
+  /* Primary colors (actions, CTAs) */
+  --primary: var(--color-green);
+  --primary-dark: #1a3d37;
+  --primary-hover: #1f4a42;
+  
+  /* Secondary colors (structure, text) */
+  --secondary: var(--color-navy);
+  --secondary-light: rgba(12, 44, 71, 0.8);
+  
+  /* Accent colors */
+  --accent: var(--color-yellow);
+  --accent-secondary: var(--color-aqua);
+  
+  /* Status colors */
+  --severity-mild: var(--color-aqua);
+  --severity-moderate: var(--color-yellow);
+  --severity-severe: var(--color-navy);
+  --danger: var(--color-yellow); /* Urgent warning state */
+  
+  /* --- BACKGROUNDS --- */
+  --bg-main: var(--color-neutral);
+  --bg-subtle: var(--color-light-neutral);
+  --bg-card: var(--color-white);
+  --bg-overlay: rgba(12, 44, 71, 0.05);
+  
+  /* --- TEXT COLORS --- */
+  --text-primary: var(--color-navy);
+  --text-body: var(--color-navy);
+  --text-secondary: rgba(12, 44, 71, 0.65);
+  --text-muted: rgba(12, 44, 71, 0.45);
+  --text-light: rgba(12, 44, 71, 0.3);
+  --text-inverse: var(--color-white);
+  
+  /* --- BORDERS --- */
+  --border-color: var(--color-aqua);
+  --border-color-light: rgba(151, 211, 205, 0.3);
+  --border-thick: 2px solid var(--color-aqua);
+  
+  /* --- SHADOWS --- */
+  --shadow-soft: 0 2px 8px rgba(12, 44, 71, 0.08);
+  --shadow-medium: 0 4px 16px rgba(12, 44, 71, 0.12);
+  --shadow-strong: 0 8px 24px rgba(12, 44, 71, 0.15);
+  
+  /* --- COMPONENT-SPECIFIC --- */
+  
+  /* Buttons */
+  --btn-primary-bg: var(--color-green);
+  --btn-primary-text: var(--color-white);
+  --btn-primary-hover: #1f4a42;
+  
+  --btn-secondary-bg: transparent;
+  --btn-secondary-text: var(--color-navy);
+  --btn-secondary-border: var(--color-navy);
+  
+  --btn-danger-bg: var(--color-yellow);
+  --btn-danger-text: var(--color-navy);
+  --btn-danger-hover: #d6933f;
+  
+  /* Cards */
+  --card-bg: var(--color-white);
+  --card-border: var(--color-aqua);
+  --card-shadow: var(--shadow-soft);
+  
+  /* Input fields */
+  --input-bg: var(--color-white);
+  --input-border: var(--border-color-light);
+  --input-focus-border: var(--color-green);
+  --input-focus-shadow: 0 0 0 3px rgba(45, 86, 82, 0.1);
+  
+  /* Badges & chips */
+  --badge-bg: var(--color-aqua);
+  --badge-text: var(--color-navy);
+  --chip-bg: var(--color-aqua);
+  --chip-text: var(--color-navy);
+  
+  /* Stats card accent rotation */
+  --accent-1: var(--color-green);
+  --accent-2: var(--color-navy);
+  --accent-3: var(--color-yellow);
+  
+  /* Avatar rotation */
+  --avatar-1: var(--color-green);
+  --avatar-2: var(--color-navy);
+  --avatar-3: var(--color-yellow);
+  
+  /* --- LAYOUT --- */
+  --sidebar-width: 240px;
+  --navbar-height: 70px;
+  --radius: 8px;
+  --radius-small: 6px;
+  --radius-large: 12px;
+}
+
+/* Dark mode ready (future) */
+@media (prefers-color-scheme: dark) {
+  /* Can be extended later if needed */
+}

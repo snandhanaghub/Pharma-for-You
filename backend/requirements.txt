@@ -6,9 +6,9 @@ pytesseract
 pillow>=10.0.0
 opencv-python==4.9.0.80
 
-rapidfuzz==3.6.1
 pydantic>=2.6
 
 requests
 
 Cython
+easyocr

@@ -8,16 +8,19 @@
 }
 
 .severity-mild {
-  background: var(--soft-accent);
+  background: var(--severity-mild);
   color: var(--text-primary);
 }
 
 .severity-moderate {
-  background: var(--primary);
-  color: white;
+  background: var(--severity-moderate);
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .severity-severe {
-  background: var(--danger);
-  color: white;
+  background: var(--severity-severe);
+  color: var(--text-inverse);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(12, 44, 71, 0.2);
 }

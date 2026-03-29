@@ -1,8 +1,8 @@
 .drag-drop-upload {
   height: 260px;
-  border: 2px dashed var(--soft-accent);
+  border: 2px dashed var(--accent-secondary);
   border-radius: var(--radius);
-  background: rgba(243, 200, 221, 0.08);
+  background: rgba(151, 211, 205, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,7 +15,7 @@
 .drag-drop-upload:hover,
 .drag-drop-active {
   border-color: var(--primary);
-  background: rgba(243, 200, 221, 0.15);
+  background: rgba(45, 86, 82, 0.15);
 }
 
 .drag-drop-icon {

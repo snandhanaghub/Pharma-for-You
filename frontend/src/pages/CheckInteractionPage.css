@@ -1,7 +1,6 @@
 .check-interaction-layout {
   display: flex;
   min-height: 100vh;
-  padding-top: var(--navbar-height);
   background: var(--bg-main);
 }
 
@@ -22,7 +21,7 @@
 .page-title {
   text-align: center;
   margin-bottom: 32px;
-  color: var(--jacarta);
+  color: var(--text-primary);
 }
 
 .check-form-card {
@@ -39,8 +38,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--soft-accent);
-  color: var(--jacarta);
+  background: var(--accent-secondary);
+  color: var(--text-primary);
   border: none;
   font-size: 24px;
   display: flex;
@@ -53,6 +52,6 @@
 
 .swap-button:hover {
   background: var(--primary);
-  color: white;
+  color: var(--text-inverse);
   transform: rotate(180deg);
 }

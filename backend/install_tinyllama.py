@@ -10,5 +10,4 @@ def install_package(package_name):
         print(f"Failed to install {package_name}: {e}")
 
 if __name__ == "__main__":
-    # Install TinyLlama
     install_package("tinyllama")

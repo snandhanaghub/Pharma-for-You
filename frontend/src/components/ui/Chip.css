@@ -9,7 +9,7 @@
 }
 
 .chip-default {
-  background: var(--soft-accent);
+  background: var(--chip-bg);
   color: var(--text-primary);
 }
 
@@ -35,5 +35,5 @@
 }
 
 .chip-remove:hover {
-  background: rgba(58, 52, 91, 0.1);
+  background: rgba(12, 44, 71, 0.08);
 }

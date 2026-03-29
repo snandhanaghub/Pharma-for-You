@@ -26,35 +26,32 @@ const CheckInteractionPage = () => {
     setLoading(true);
     
     try {
-      // Create a prompt for TinyLlama to check drug interactions
-      const prompt = `Check for drug interactions between ${drugA} and ${drugB}. 
-Provide:
-1. Interaction severity (None/Minor/Moderate/Severe)
-2. Specific interactions
-3. Recommendations
-Keep response concise.`;
-
-      const response = await api.askAI(prompt);
+      const response = await api.checkInteractions(
+        [drugA, drugB],
+        `Check interaction between ${drugA} and ${drugB}`
+      );
 
       if (response.success) {
-        // Parse the AI response to determine severity
-        const responseText = response.response.toUpperCase();
-        let severity = 'Unknown';
-        let confidence = 65;
+        const interactionRows = response.direct_interactions || [];
+        const severityOrder = { none: 0, moderate: 1, severe: 2, high: 3 };
+        let severity = 'None';
+        let maxLevel = 0;
 
-        if (responseText.includes('SEVERE') || responseText.includes('CRITICAL')) {
-          severity = 'Severe';
-          confidence = 95;
-        } else if (responseText.includes('MODERATE')) {
-          severity = 'Moderate';
-          confidence = 85;
-        } else if (responseText.includes('MINOR')) {
-          severity = 'Minor';
-          confidence = 75;
-        } else if (responseText.includes('NO INTERACTION') || responseText.includes('SAFE')) {
-          severity = 'None';
-          confidence = 90;
-        }
+        interactionRows.forEach((row) => {
+          const currentSeverity = (row.severity || 'None').toLowerCase();
+          const level = severityOrder[currentSeverity] ?? 0;
+          if (level >= maxLevel) {
+            maxLevel = level;
+            severity = row.severity || 'None';
+          }
+        });
+
+        const confidence = response.supabase_rows_found > 0 ? 95 : 60;
+        const interactionSummary = response.interaction_analysis || 'No summary available.';
+        const clinicalExplanation = response.supabase_rows_found > 0
+          ? (interactionRows.map((row) => row.description).filter(Boolean).join(' ') || interactionSummary)
+          : 'No direct interaction rows were found in the database for this pair.';
+        const recommendation = response.safety_recommendations || 'Consult your clinician for final guidance.';
 
         navigate('/result', { 
           state: { 
@@ -62,7 +59,10 @@ Keep response concise.`;
             drugB,
             severity,
             confidence,
-            aiExplanation: response.response
+            interactionSummary,
+            clinicalExplanation,
+            recommendation,
+            supabaseRowsFound: response.supabase_rows_found || 0
           } 
         });
       } else {

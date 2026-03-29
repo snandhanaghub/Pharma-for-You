@@ -14,7 +14,6 @@ const LandingPage = () => {
       <Navbar variant="landing" />
       
       <main className="landing-main">
-        {/* Hero Section */}
         <section className="hero-section">
           <div className="hero-container">
             <div className="hero-left">
@@ -50,7 +49,6 @@ const LandingPage = () => {
           </div>
         </section>
         
-        {/* Features Section */}
         <section className="features-section">
           <div className="features-container">
             <div className="feature-card">
@@ -79,14 +77,13 @@ const LandingPage = () => {
           </div>
         </section>
         
-        {/* CTA Section */}
         <section className="cta-section">
           <div className="cta-container">
             <h2 className="cta-title">Ready to ensure drug safety?</h2>
             <p className="cta-text text-muted">
               Start checking drug interactions now with Pharma4U
             </p>
-            <Link to="/dashboard">
+            <Link to="/login">
               <Button variant="primary">Get Started Free</Button>
             </Link>
           </div>

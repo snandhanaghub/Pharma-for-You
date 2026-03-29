@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, Navigate } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Card from '../components/ui/Card';
 import SeverityBadge from '../components/ui/SeverityBadge';
@@ -9,12 +9,19 @@ import './ResultPage.css';
 
 const ResultPage = () => {
   const location = useLocation();
-  const { drugA, drugB, severity, confidence } = location.state || {
-    drugA: 'Aspirin',
-    drugB: 'Ibuprofen',
-    severity: 'Moderate',
-    confidence: 92
-  };
+  if (!location.state) {
+    return <Navigate to="/check-interaction" replace />;
+  }
+
+  const {
+    drugA,
+    drugB,
+    severity,
+    confidence,
+    interactionSummary,
+    clinicalExplanation,
+    recommendation,
+  } = location.state;
 
   const severityColor = severity.toLowerCase();
 
@@ -37,26 +44,21 @@ const ResultPage = () => {
             <section className="result-section">
               <h3 className="result-section-title">Interaction Summary</h3>
               <p className="result-text">
-                {drugA} and {drugB} may interact, potentially affecting the efficacy 
-                and safety of the treatment. This interaction is classified as {severity.toLowerCase()}.
+                {interactionSummary}
               </p>
             </section>
             
             <section className="result-section">
               <h3 className="result-section-title">Clinical Explanation</h3>
               <p className="result-text">
-                Both medications are nonsteroidal anti-inflammatory drugs (NSAIDs). 
-                Taking them together can increase the risk of gastrointestinal bleeding, 
-                ulcers, and kidney problems. The combined effect may also reduce the 
-                effectiveness of each medication.
+                {clinicalExplanation}
               </p>
             </section>
             
             <section className="result-section">
               <h3 className="result-section-title">Recommendation</h3>
               <p className="result-text">
-                Consult with a healthcare provider before taking these medications together. 
-                They may adjust dosages or recommend alternative treatments to minimize risks.
+                {recommendation}
               </p>
             </section>
             

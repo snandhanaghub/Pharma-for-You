@@ -13,17 +13,18 @@
 
 .input {
   padding: 12px 16px;
-  border: 1px solid var(--border-color-strong);
+  border: 2px solid var(--text-primary);
   border-radius: var(--radius);
   font-size: 16px;
   transition: all 0.2s ease;
-  background: white;
-  color: var(--text-body);
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .input:focus {
-  border: 2px solid var(--primary);
-  padding: 11px 15px; /* Adjust padding to maintain size */
+  border: 2px solid var(--input-focus-border);
+  box-shadow: var(--input-focus-shadow);
+  padding: 11px 15px;
 }
 
 .input::placeholder {
@@ -31,16 +32,16 @@
 }
 
 .input:disabled {
-  background: rgba(58, 52, 91, 0.05);
+  background: var(--bg-overlay);
   cursor: not-allowed;
 }
 
 .input-error {
-  border-color: var(--danger);
+  border-color: var(--btn-danger-bg);
 }
 
 .input-error-text {
   font-size: 12px;
-  color: var(--danger);
+  color: var(--btn-danger-bg);
   margin-top: -4px;
 }

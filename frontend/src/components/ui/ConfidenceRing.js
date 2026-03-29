@@ -10,20 +10,18 @@ const ConfidenceRing = ({ confidence = 92, size = 120 }) => {
   return (
     <div className="confidence-ring" style={{ width: size, height: size }}>
       <svg width={size} height={size}>
-        {/* Background circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="transparent"
-          stroke="rgba(209, 131, 169, 0.1)"
+          stroke="rgba(151, 211, 205, 0.2)"
           strokeWidth={strokeWidth}
         />
-        {/* Progress circle with gradient */}
         <defs>
           <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--primary)" />
-            <stop offset="100%" stopColor="var(--soft-accent)" />
+            <stop offset="0%" stopColor="#2D5652" />
+            <stop offset="100%" stopColor="#E2A54D" />
           </linearGradient>
         </defs>
         <circle

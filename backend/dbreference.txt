@@ -1,0 +1,81 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+create table public.profiles (
+  id uuid not null,
+  full_name text null,
+  role text not null default 'user'::text,
+  created_at timestamp without time zone null default CURRENT_TIMESTAMP,
+  constraint profiles_pkey primary key (id),
+  constraint profiles_id_fkey foreign KEY (id) references auth.users (id) on delete CASCADE,
+  constraint role_check check ((role = any (array['user'::text, 'admin'::text])))
+) TABLESPACE pg_default;
+
+create table public.ayurveda (
+  id serial not null,
+  name text not null,
+  constraint ayurveda_pkey primary key (id),
+  constraint ayurveda_name_key unique (name)
+) TABLESPACE pg_default;
+
+create table public.allopathy (
+  id serial not null,
+  name text not null,
+  constraint allopathy_pkey primary key (id),
+  constraint allopathy_name_key unique (name)
+) TABLESPACE pg_default;
+
+create table public.interaction (
+  id serial not null,
+  med1_type text not null,
+  med1_id integer not null,
+  med2_type text not null,
+  med2_id integer not null,
+  active_ingredient text null,
+  severity text not null,
+  description text not null,
+  source_link text null,
+  created_at timestamp without time zone null default CURRENT_TIMESTAMP,
+  created_by uuid null,
+  status text null default 'pending'::text,
+  approved_by uuid null,
+  approved_at timestamp without time zone null,
+  constraint interaction_pkey primary key (id),
+  constraint interaction_created_by_fkey foreign KEY (created_by) references auth.users (id),
+  constraint interaction_approved_by_fkey foreign KEY (approved_by) references auth.users (id),
+  constraint status_check check (
+    (
+      status = any (
+        array[
+          'pending'::text,
+          'approved'::text,
+          'rejected'::text
+        ]
+      )
+    )
+  ),
+  constraint interaction_med2_type_check check (
+    (
+      med2_type = any (array['allopathy'::text, 'ayurveda'::text])
+    )
+  ),
+  constraint interaction_med1_type_check check (
+    (
+      med1_type = any (array['allopathy'::text, 'ayurveda'::text])
+    )
+  ),
+  constraint interaction_severity_check check (
+    (
+      severity = any (
+        array[
+          'None'::text,
+          'Moderate'::text,
+          'Severe'::text,
+          'High'::text
+        ]
+      )
+    )
+  )
+) TABLESPACE pg_default;
+
+create unique INDEX IF not exists unique_interaction_pair on public.interaction using btree (med1_type, med1_id, med2_type, med2_id) TABLESPACE pg_default;
