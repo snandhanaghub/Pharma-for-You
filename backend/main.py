@@ -183,22 +183,6 @@ class InteractionCheckRequest(BaseModel):
     medicines: List[str]
     description: Optional[str] = None
 
-class InteractionSubmitRequest(BaseModel):
-    med1_type: str
-    med1_id: Optional[int] = None
-    med1_name: Optional[str] = None       # free-text when not in DB
-    med2_type: str
-    med2_id: Optional[int] = None
-    med2_name: Optional[str] = None       # free-text when not in DB
-    active_ingredient: Optional[str] = None
-    severity: str
-    description: str
-    source_link: Optional[str] = None
-    created_by: Optional[str] = None  # user UUID
-
-class InteractionReviewRequest(BaseModel):
-    approved_by: Optional[str] = None  # admin UUID
-
 def supabase_configured():
     return bool(
         SUPABASE_URL
@@ -304,7 +288,6 @@ def query_interactions_for_pair(candidate_a: dict, candidate_b: dict, limit: int
     common_params = {
         "select": "id,med1_type,med1_id,med2_type,med2_id,active_ingredient,severity,description,source_link,created_at",
         "limit": limit,
-        "status": "eq.approved",  # ✅ Only approved interactions
     }
 
     rows_forward, error_forward = supabase_get(

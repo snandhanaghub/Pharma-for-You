@@ -8,7 +8,6 @@ import SeverityBadge from '../components/ui/SeverityBadge';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
 import './AccountPage.css';
-import '../pages/SubmitInteractionPage.css';
 
 const AccountPage = () => {
   const navigate = useNavigate();
@@ -16,7 +15,6 @@ const AccountPage = () => {
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || 'User';
   const email = user?.email || 'No email available';
-  const isAdmin = profile?.role === 'admin';
 
   const handleLogout = async () => {
     try {
@@ -44,9 +42,7 @@ const AccountPage = () => {
               <div className="profile-right">
                 <h2 className="profile-name">{displayName}</h2>
                 <p className="profile-email text-muted">{email}</p>
-                <span className={`account-badge ${isAdmin ? 'admin-badge' : ''}`}>
-                  {isAdmin ? '🛡️ Admin' : '⭐ Member'}
-                </span>
+                <span className="account-badge">⭐ Member</span>
                 <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '2px' }}>
                   Role: <strong>{profile?.role || 'user'}</strong>
                 </p>
