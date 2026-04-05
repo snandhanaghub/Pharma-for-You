@@ -5,53 +5,54 @@
 
 :root {
   /* --- RAW PALETTE --- */
-  --color-navy: #0C2C47;
-  --color-green: #2D5652;
-  --color-yellow: #E2A54D;
-  --color-aqua: #97D3CD;
-  --color-neutral: #EFEAE6;
-  --color-light-neutral: #E4E2EA;
+  --color-beige: #F3E8DE;
+  --color-dark-green: #254C42;
+  --color-secondary-green: #818E6E;
+  --color-pink: #EFCABB;
+  --color-moderate: #C47955;
+  --color-severe: #9B4C34;
+  --color-depth: #4C2744;
   --color-white: #FFFFFF;
   
   /* --- SEMANTIC MAPPING --- */
   
   /* Primary colors (actions, CTAs) */
-  --primary: var(--color-green);
-  --primary-dark: #1a3d37;
-  --primary-hover: #1f4a42;
+  --primary: var(--color-dark-green);
+  --primary-dark: var(--color-depth);
+  --primary-hover: #1b3a32;
   
   /* Secondary colors (structure, text) */
-  --secondary: var(--color-navy);
-  --secondary-light: rgba(12, 44, 71, 0.8);
+  --secondary: var(--color-secondary-green);
+  --secondary-light: rgba(37, 76, 66, 0.8);
   
   /* Accent colors */
-  --accent: var(--color-yellow);
-  --accent-secondary: var(--color-aqua);
+  --accent: var(--color-pink);
+  --accent-secondary: var(--color-moderate);
   
   /* Status colors */
-  --severity-mild: var(--color-aqua);
-  --severity-moderate: var(--color-yellow);
-  --severity-severe: var(--color-navy);
-  --danger: var(--color-yellow); /* Urgent warning state */
+  --severity-mild: var(--color-secondary-green);
+  --severity-moderate: var(--color-moderate);
+  --severity-severe: var(--color-severe);
+  --danger: var(--color-severe); /* Urgent warning state */
   
   /* --- BACKGROUNDS --- */
-  --bg-main: var(--color-neutral);
-  --bg-subtle: var(--color-light-neutral);
+  --bg-main: var(--color-beige);
+  --bg-subtle: rgba(37, 76, 66, 0.05);
   --bg-card: var(--color-white);
-  --bg-overlay: rgba(12, 44, 71, 0.05);
+  --bg-overlay: rgba(37, 76, 66, 0.05);
   
   /* --- TEXT COLORS --- */
-  --text-primary: var(--color-navy);
-  --text-body: var(--color-navy);
-  --text-secondary: rgba(12, 44, 71, 0.65);
-  --text-muted: rgba(12, 44, 71, 0.45);
-  --text-light: rgba(12, 44, 71, 0.3);
-  --text-inverse: var(--color-white);
+  --text-primary: var(--color-dark-green);
+  --text-body: var(--color-dark-green);
+  --text-secondary: rgba(37, 76, 66, 0.75);
+  --text-muted: rgba(37, 76, 66, 0.55);
+  --text-light: rgba(37, 76, 66, 0.3);
+  --text-inverse: var(--color-beige);
   
   /* --- BORDERS --- */
-  --border-color: var(--color-aqua);
-  --border-color-light: rgba(151, 211, 205, 0.3);
-  --border-thick: 2px solid var(--color-aqua);
+  --border-color: var(--color-secondary-green);
+  --border-color-light: rgba(129, 142, 110, 0.3);
+  --border-thick: 2px solid var(--color-secondary-green);
   
   /* --- SHADOWS --- */
   --shadow-soft: 0 2px 8px rgba(12, 44, 71, 0.08);
@@ -61,17 +62,17 @@
   /* --- COMPONENT-SPECIFIC --- */
   
   /* Buttons */
-  --btn-primary-bg: var(--color-green);
-  --btn-primary-text: var(--color-white);
-  --btn-primary-hover: #1f4a42;
+  --btn-primary-bg: var(--color-dark-green);
+  --btn-primary-text: var(--color-beige);
+  --btn-primary-hover: #1b3a32;
   
-  --btn-secondary-bg: transparent;
-  --btn-secondary-text: var(--color-navy);
-  --btn-secondary-border: var(--color-navy);
+  --btn-secondary-bg: var(--color-pink);
+  --btn-secondary-text: var(--color-dark-green);
+  --btn-secondary-border: var(--color-pink);
   
-  --btn-danger-bg: var(--color-yellow);
-  --btn-danger-text: var(--color-navy);
-  --btn-danger-hover: #d6933f;
+  --btn-danger-bg: var(--color-severe);
+  --btn-danger-text: var(--color-beige);
+  --btn-danger-hover: #7b3c29;
   
   /* Cards */
   --card-bg: var(--color-white);

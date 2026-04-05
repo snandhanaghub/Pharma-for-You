@@ -33,16 +33,20 @@ const CheckInteractionPage = () => {
 
       if (response.success) {
         const interactionRows = response.direct_interactions || [];
-        const severityOrder = { none: 0, moderate: 1, severe: 2, high: 3 };
-        let severity = 'None';
+        const severityOrder = { 
+          'no significant interaction': 0, 'none': 0, 'mild': 0, 
+          'significant interaction': 1, 'moderate': 1, 'severe': 1, 'high': 1 
+        };
+        let severity = 'No Significant Interaction';
         let maxLevel = 0;
 
         interactionRows.forEach((row) => {
-          const currentSeverity = (row.severity || 'None').toLowerCase();
+          const currentSeverity = (row.severity || 'No Significant Interaction').toLowerCase();
           const level = severityOrder[currentSeverity] ?? 0;
           if (level >= maxLevel) {
             maxLevel = level;
-            severity = row.severity || 'None';
+            // if we hit level 1, force standard new label just in case the row had "moderate"
+            severity = level === 1 ? 'Significant Interaction' : 'No Significant Interaction';
           }
         });
 
@@ -52,6 +56,7 @@ const CheckInteractionPage = () => {
           ? (interactionRows.map((row) => row.description).filter(Boolean).join(' ') || interactionSummary)
           : 'No direct interaction rows were found in the database for this pair.';
         const recommendation = response.safety_recommendations || 'Consult your clinician for final guidance.';
+        const webResearchSummary = response.web_research_summary || 'No web literature summary available.';
 
         navigate('/result', { 
           state: { 
@@ -62,6 +67,8 @@ const CheckInteractionPage = () => {
             interactionSummary,
             clinicalExplanation,
             recommendation,
+            webResearchSummary,
+            signals: response.signals || null,
             supabaseRowsFound: response.supabase_rows_found || 0
           } 
         });

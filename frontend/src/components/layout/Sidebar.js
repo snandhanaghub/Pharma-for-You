@@ -10,7 +10,6 @@ const Sidebar = () => {
   
   const menuItems = [
     { path: '/check-interaction', label: 'Interaction Assistant', icon: '🔍' },
-    { path: '/submit-interaction', label: 'Submit Interaction', icon: '📝' },
     { path: '/account', label: 'Account', icon: '👤' },
   ];
 

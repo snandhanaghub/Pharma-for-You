@@ -40,10 +40,13 @@ const highestSeverity = (rows) => {
 };
 
 const SEVERITY_STYLES = {
-  high:     { bg: '#fff1f1', border: '#f87171', badge: '#dc2626', text: '#7f1d1d' },
-  severe:   { bg: '#fff1f1', border: '#f87171', badge: '#dc2626', text: '#7f1d1d' },
-  moderate: { bg: '#fffbeb', border: '#fbbf24', badge: '#d97706', text: '#78350f' },
-  none:     { bg: '#f0fdf4', border: '#86efac', badge: '#16a34a', text: '#14532d' },
+  'significant interaction': { bg: '#984C34', badgeBg: '#F3E8DE', badgeText: '#984C34' },
+  'no significant interaction': { bg: '#818E6E', badgeBg: '#F3E8DE', badgeText: '#818E6E' },
+  high:     { bg: '#984C34', badgeBg: '#F3E8DE', badgeText: '#984C34' },
+  severe:   { bg: '#984C34', badgeBg: '#F3E8DE', badgeText: '#984C34' },
+  moderate: { bg: '#984C34', badgeBg: '#F3E8DE', badgeText: '#984C34' },
+  mild:     { bg: '#818E6E', badgeBg: '#F3E8DE', badgeText: '#818E6E' },
+  none:     { bg: '#818E6E', badgeBg: '#F3E8DE', badgeText: '#818E6E' },
 };
 
 const getSeverityStyle = (severity) =>
@@ -51,14 +54,24 @@ const getSeverityStyle = (severity) =>
 
 const StructuredResult = ({ data }) => {
   const style = getSeverityStyle(data.severity);
+  const renderSourcesList = (text) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = text.match(urlRegex) || [];
+    return urls.map((url, i) => (
+      <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginBottom: '8px' }}>{url}</a>
+    ));
+  };
+
   return (
     <div
       className="result-card-bubble"
-      style={{ borderColor: style.border, background: style.bg }}
+      style={{ backgroundColor: style.bg }}
     >
+      <div className="rcb-content">
       <div className="rcb-header">
-        <span className="rcb-title">💊 {data.medicines.join(' + ')}</span>
-        <span className="rcb-badge" style={{ background: style.badge, color: '#fff' }}>
+        <span className="rcb-title">{data.medicines.join(' + ')}</span>
+        <span className="rcb-badge" style={{ background: style.badgeBg, color: style.badgeText }}>
           {data.severity}
         </span>
       </div>
@@ -74,28 +87,55 @@ const StructuredResult = ({ data }) => {
 
       <div className="rcb-divider" />
 
-      {data.summary && (
+      {data.medicineSummaries && Object.keys(data.medicineSummaries).length > 0 && (
         <div className="rcb-section">
-          <div className="rcb-label">📝 Summary</div>
-          <div className="rcb-text">{data.summary}</div>
+          <div className="rcb-label">About the medicines</div>
+          <div className="rcb-text">
+            {Object.entries(data.medicineSummaries).map(([med, sum], idx) => (
+               <React.Fragment key={idx}>
+                  <strong>{med}:</strong> {sum.replace(/^Definition:\s*/i, '')}
+               </React.Fragment>
+            ))}
+          </div>
         </div>
       )}
 
-      {data.explanation && (
-        <div className="rcb-section">
-          <div className="rcb-label">🔬 Clinical Explanation</div>
-          <div className="rcb-text">{data.explanation}</div>
-        </div>
+      {data.webResearchSummary ? (
+        <>
+          <div className="rcb-section">
+            <div className="rcb-label">Clinical Explanation</div>
+            <div className="rcb-text">
+              {data.webResearchSummary.split(/\*\*Sources:\*\*/i)[0].trim()}
+            </div>
+          </div>
+          {data.webResearchSummary.match(/\*\*Sources:\*\*/i) && (
+            <div className="rcb-section">
+              <div className="rcb-label">Sources</div>
+              <div className="rcb-text">
+                {renderSourcesList(data.webResearchSummary.split(/\*\*Sources:\*\*/i)[1])}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        data.explanation && (
+          <div className="rcb-section">
+            <div className="rcb-label">Clinical Explanation</div>
+            <div className="rcb-text">{data.explanation}</div>
+          </div>
+        )
       )}
 
       {data.recommendation && (
         <div className="rcb-section">
-          <div className="rcb-label">✅ Recommendation</div>
-          <div className="rcb-text" style={{ color: style.text }}>
+          <div className="rcb-label">Recommendation</div>
+          <div className="rcb-text">
             {data.recommendation}
           </div>
         </div>
       )}
+
+      </div>
     </div>
   );
 };
@@ -163,20 +203,25 @@ const ChatAssistantPage = () => {
         severity,
         pairsEvaluated: pairwise.length,
         pairsWithInteractions: interactionPairs.length,
-        summary: response.interaction_analysis || 'No summary available.',
         explanation: response.clinical_explanation || '',
         recommendation:
           response.safety_recommendations || 'Consult your clinician for final guidance.',
+        webResearchSummary: response.web_research_summary || null,
+        medicineSummaries: response.medicine_summaries || {},
       },
     });
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if ((!text && stagedFiles.length === 0) || loading) return;
+  const handleSend = async (overrideText = null, overrideFiles = null) => {
+    const isOverrideTextEvent = overrideText && typeof overrideText === 'object' && overrideText.nativeEvent;
+    const isOverrideFilesEvent = overrideFiles && typeof overrideFiles === 'object' && !Array.isArray(overrideFiles);
+
+    const text = (!isOverrideTextEvent && typeof overrideText === 'string') ? overrideText : input.trim();
+    const currentFiles = (!isOverrideFilesEvent && Array.isArray(overrideFiles)) ? overrideFiles : [...stagedFiles];
+
+    if ((!text && currentFiles.length === 0) || loading) return;
 
     const newMessage = { role: 'user', text };
-    const currentFiles = [...stagedFiles];
 
     if (currentFiles.length > 0) {
       newMessage.imageUrl = URL.createObjectURL(currentFiles[0]);
@@ -198,9 +243,7 @@ const ChatAssistantPage = () => {
         const ocrResponse = await api.analyzeMedicineImage(currentFiles);
         if (ocrResponse.success && ocrResponse.extracted_text) {
           extractedText = ocrResponse.extracted_text;
-          extractedMedicines = (ocrResponse.matching_medicines || []).map(
-            (m) => m.brand_name || m.generic_name || m.name || ''
-          );
+          extractedMedicines = ocrResponse.medicines || [];
         } else {
           appendMessage({
             role: 'assistant',
@@ -220,12 +263,10 @@ const ChatAssistantPage = () => {
     const medicines = [...new Set([...typedMedicines, ...extractedMedicines])];
     const combinedContext = [extractedText, text].filter(Boolean).join(' ');
 
-    if (medicines.length < 2) {
+    if (medicines.length < 1) {
       appendMessage({
         role: 'assistant',
-        text: `I detected fewer than two medicines. Please provide more context or upload a clearer prescription. Found: ${
-          medicines.length > 0 ? medicines.join(', ') : 'None'
-        }`,
+        text: `I could not detect any medicines. Please provide more context or upload a clearer prescription.`,
       });
       setLoading(false);
       return;
@@ -247,8 +288,8 @@ const ChatAssistantPage = () => {
   const handleStageFile = (event) => {
     const newFiles = Array.from(event.target.files || []);
     if (!newFiles.length || loading) return;
-    setStagedFiles((prev) => [...prev, ...newFiles]);
     event.target.value = '';
+    handleSend(input.trim(), newFiles);
   };
 
   const removeStagedFile = (idxToRemove) => {
@@ -345,36 +386,39 @@ const ChatAssistantPage = () => {
                 </div>
               )}
 
-              <input
-                className="chat-text-input"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type medicines (e.g., Warfarin + Garlic)"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-              />
-
-              <div className="chat-actions">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleUploadClick}
-                  disabled={loading}
-                >
-                  Attach Image
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={handleSend}
-                  disabled={!canSend}
-                >
-                  Send
-                </Button>
+              <div className="chat-input-wrapper">
+                <input
+                  className="chat-text-input"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type medicines (e.g., Warfarin + Garlic)"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                />
+                <div className="chat-input-actions">
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={handleUploadClick}
+                    disabled={loading}
+                    title="Attach Image"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`icon-btn ${canSend ? 'send-ready' : ''}`}
+                    onClick={handleSend}
+                    disabled={!canSend}
+                    title="Send"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  </button>
+                </div>
               </div>
 
               <input

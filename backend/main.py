@@ -71,30 +71,53 @@ def quicksnip_preprocess_and_ocr(image: Image.Image) -> str:
         print(f"QuickSnip Tesseract Pipeline Error: {e}")
         return ""
 
+# Check Tesseract availability once at import time
+TESSERACT_AVAILABLE = False
+tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if os.path.isfile(tesseract_path):
+    TESSERACT_AVAILABLE = True
+else:
+    # Also check PATH
+    import shutil
+    tesseract_in_path = shutil.which("tesseract")
+    if tesseract_in_path:
+        tesseract_path = tesseract_in_path
+        TESSERACT_AVAILABLE = True
+
+if TESSERACT_AVAILABLE:
+    print(f"Tesseract found at: {tesseract_path}")
+else:
+    print("WARNING: Tesseract not found — will use EasyOCR only.")
+
 def perform_ocr(image: Image.Image) -> str:
-    print("Starting OCR extraction (QuickSnip priority)...")
+    print("Starting OCR extraction (EasyOCR priority)...")
     
-    # 1. QuickSnip Optimized Pipeline First
-    qs_text = quicksnip_preprocess_and_ocr(image)
-    if qs_text and len(qs_text) > 3:
-        print(f"QuickSnip success! Extracted: {qs_text[:50]}...")
-        return qs_text
-        
-    # 2. Fallback to EasyOCR if QuickSnip missed
-    print("QuickSnip OCR returned minimal results, falling back to EasyOCR...")
+    # 1. Try EasyOCR first (always available, no external binary needed)
+    easyocr_text = ""
     try:
         reader = get_easyocr_reader()
         if reader:
             print("Running EasyOCR extraction...")
             img_np = np.array(image.convert("RGB"))
             results = reader.readtext(img_np, detail=0)
-            text_result = " ".join(results).strip()
-            print(f"EasyOCR success! Extracted: {text_result[:50]}...")
-            return text_result
+            easyocr_text = " ".join(results).strip()
+            if easyocr_text and len(easyocr_text) > 3:
+                print(f"EasyOCR success! Extracted: {easyocr_text[:50]}...")
+                return easyocr_text
     except Exception as e:
         print(f"EasyOCR error: {e}")
     
-    return qs_text # Return whatever QuickSnip got if EasyOCR outright failed
+    # 2. Fallback to QuickSnip/Tesseract if EasyOCR missed and Tesseract is available
+    if TESSERACT_AVAILABLE:
+        print("EasyOCR returned minimal results, falling back to Tesseract/QuickSnip...")
+        qs_text = quicksnip_preprocess_and_ocr(image)
+        if qs_text and len(qs_text) > 3:
+            print(f"QuickSnip success! Extracted: {qs_text[:50]}...")
+            return qs_text
+        return qs_text or easyocr_text
+    else:
+        print("Tesseract not available, returning EasyOCR result (may be empty).")
+        return easyocr_text
 
 def load_env_file(env_file_path: str):
     if not os.path.exists(env_file_path):
@@ -123,7 +146,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if TESSERACT_AVAILABLE:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
 SUPABASE_ALLOPATHY_TABLE = os.getenv("SUPABASE_ALLOPATHY_TABLE", "allopathy")
@@ -357,11 +381,11 @@ def extract_inline_medicines(text: str):
 def extract_medicines_with_llama(text: str):
     if not text:
         return [], "No text provided"
+    
     prompt = (
-        "You are a pharmacist assistant. Extract ONLY medicine/drug names from the following text. "
-        "Return them as a JSON array of strings. Example: [\"Aspirin\", \"Ibuprofen\"]. "
-        "If no medicines found, return []. Do NOT include dosages, instructions, or doctor names. "
-        f"Text: {text}"
+        f"Extract ONLY the medicine or drug names from this text: '{text}'.\n\n"
+        "Return ONLY a strictly valid JSON array of strings (e.g., [\"Aspirin\"]). "
+        "Do NOT write any python code, explanations, or conversational text. ONLY output the JSON array."
     )
 
     print(f"[LLaMA NER] Sending OCR text to TinyLlama: {text[:100]}...")
@@ -418,424 +442,476 @@ def extract_medicines_with_llama(text: str):
         print(f"[LLaMA NER] Exception: {e}")
         return [], str(e)
 
-def build_supabase_context(medicines: List[str], per_term_limit: int = 3):
-    matched_by_input = {}
-    direct_interactions = []
-    errors = []
-    seen_interaction_ids = set()
-    pairwise_interactions = []
-
-    for medicine in medicines:
-        rows, error = query_medicine_candidates(medicine, per_term_limit)
-        if error:
-            errors.append(f"{medicine}: {error}")
-            matched_by_input[medicine] = []
-            continue
-        matched_by_input[medicine] = rows
-
-    medicine_keys = list(matched_by_input.keys())
-    for left_key, right_key in combinations(medicine_keys, 2):
-        left_candidates = matched_by_input.get(left_key, [])
-        right_candidates = matched_by_input.get(right_key, [])
-        pair_rows = []
-        pair_seen_keys = set()
-        pair_errors = []
-        for left_candidate in left_candidates:
-            for right_candidate in right_candidates:
-                rows, pair_error = query_interactions_for_pair(left_candidate, right_candidate)
-                if pair_error:
-                    pair_errors.append(pair_error)
-                for row in rows:
-                    row_id = row.get("id")
-                    pair_key = str(row_id) if row_id is not None else json.dumps(row, sort_keys=True, default=str)
-                    if pair_key not in pair_seen_keys:
-                        pair_seen_keys.add(pair_key)
-                        pair_rows.append(row)
-                    interaction_id = row.get("id")
-                    key = str(interaction_id) if interaction_id is not None else json.dumps(row, sort_keys=True, default=str)
-                    if key in seen_interaction_ids:
-                        continue
-                    seen_interaction_ids.add(key)
-                    direct_interactions.append(row)
-
-        if pair_errors:
-            errors.append(f"{left_key} vs {right_key}: {' | '.join(pair_errors)}")
-
-        descriptions = []
-        description_seen = set()
-        for row in pair_rows:
-            value = (row.get("description") or "").strip()
-            if value and value not in description_seen:
-                description_seen.add(value)
-                descriptions.append(value)
-
-        top_row = pick_primary_interaction(pair_rows) if pair_rows else None
-        top_severity = (top_row.get("severity") if top_row else "None") or "None"
-        pairwise_interactions.append(
-            {
-                "pair": [left_key, right_key],
-                "rows_found": len(pair_rows),
-                "severity": top_severity,
-                "interactions": pair_rows,
-                "clinical_explanation": " ".join(descriptions[:2]) if descriptions else "No evidence rows found for this pair.",
-                "safety_recommendation": build_structured_recommendation(top_row) if top_row else "No evidence-based recommendation available; consult clinician.",
-            }
+def get_medicine_summary_llama(medicine: str) -> str:
+    prompt = f"As a pharmacist, provide a very concise, 1-2 sentence definition of the medication '{medicine}'. State its primary use class."
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": "tinyllama", "prompt": prompt, "stream": False, "options": {"temperature": 0.1}},
+            timeout=10
         )
+        if response.status_code == 200:
+            return response.json().get("response", "").strip()
+    except:
+        pass
+    return f"{medicine} is a medication or supplement."
 
-    return matched_by_input, direct_interactions, errors, pairwise_interactions
 
-def summarize_supabase_context(matched_by_input: dict, direct_interactions: List[dict]):
-    lines = []
+# ─────────────────────────────────────────────────────────
+#  HYBRID SEVERITY ENGINE v2
+#  AI extracts clinical signals ──► Algorithm scores severity
+# ─────────────────────────────────────────────────────────
 
-    lines.append("Matched medicines:")
-    has_match = False
-    for user_input, matches in matched_by_input.items():
-        if not matches:
-            lines.append(f"- {user_input}: no match")
-            continue
-        has_match = True
-        match_text = ", ".join([f"{item['name']} ({item['type']}#{item['id']})" for item in matches])
-        lines.append(f"- {user_input}: {match_text}")
+def extract_signals_with_llama(combined_snippets: str, medicines: List[str]) -> dict:
+    """Uses TinyLlama to extract structured clinical signals from web snippets."""
+    meds_str = ", ".join(medicines)
+    prompt = (
+        f"Analyze the following medical snippets regarding the interaction between {meds_str}.\n"
+        f"Extract exactly three signals in JSON format:\n"
+        f"1. mechanism: one of ['additive', 'enzyme', 'pharmacodynamic', 'unknown']\n"
+        f"2. outcome_severity: one of ['death/life-threatening', 'hospitalization', 'serious organ damage', 'moderate symptoms', 'mild']\n"
+        f"3. evidence_level: one of ['FDA/NIH/Meta-analysis', 'clinical study', 'case reports', 'weak/unclear']\n\n"
+        f"Snippets:\n{combined_snippets[:1500]}\n\n"
+        f"Return ONLY the JSON object. Do not explain. Do not add conversational text."
+    )
 
-    if not has_match:
-        lines.append("- none")
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": "tinyllama", "prompt": prompt, "stream": False, "options": {"temperature": 0.0}},
+            timeout=30,
+        )
+        if response.status_code == 200:
+            body = response.json().get("response", "").strip()
+            # Clean up potential LLM chatter
+            json_match = re.search(r"\{[\s\S]*?\}", body)
+            if json_match:
+                data = json.loads(json_match.group(0))
+                return {
+                    "mechanism": str(data.get("mechanism", "unknown")).lower(),
+                    "outcome": str(data.get("outcome_severity", "mild")).lower(),
+                    "evidence": str(data.get("evidence_level", "weak/unclear")).lower(),
+                }
+    except Exception as e:
+        print(f"[Severity Engine] AI Signal Extraction Error: {e}")
+    
+    return None # Fallback
 
-    lines.append("Interaction rows:")
-    if not direct_interactions:
-        lines.append("- none")
-    else:
-        for row in direct_interactions:
-            lines.append(
-                f"- id={row.get('id')} severity={row.get('severity')} ingredient={row.get('active_ingredient') or row.get('ingredient')} description={row.get('description')} source={row.get('source_link')}"
-            )
 
-    return "\n".join(lines)
-
-def severity_rank(severity: str):
-    ranking = {
-        "none": 0,
-        "moderate": 1,
-        "severe": 2,
-        "high": 3,
+def compute_severity(signals: dict) -> dict:
+    """Deterministic scoring model based on user-defined weights.
+    
+    A. Outcome Severity: death (5), hospitalization (4), serious (3), moderate (2), mild (1)
+    B. Evidence Score: FDA (3), clinical study (2), case reports (1), weak (0)
+    C. Mechanism Score: additive (3), enzyme (2), unknown/pharmacodynamic (1)
+    
+    Map Score -> Severity (Simplified 2-level UI, 3-level logic):
+    10-11: Significant Interaction (Avoid)
+    5-9: Significant Interaction (Monitor)
+    0-4: No Significant Interaction (Safe)
+    """
+    
+    outcome_map = {
+        "death/life-threatening": 5, "death": 5, "fatal": 5,
+        "hospitalization": 4, "emergency": 4,
+        "serious organ damage": 3, "serious": 3,
+        "moderate symptoms": 2, "moderate": 2,
+        "mild": 1, "none": 0
     }
-    return ranking.get((severity or "none").strip().lower(), 0)
+    
+    evidence_map = {
+        "fda/nih/meta-analysis": 3, "fda": 3, "nih": 3, "meta-analysis": 3,
+        "clinical study": 2, "study": 2,
+        "case reports": 1, "case report": 1,
+        "weak/unclear": 0, "weak": 0, "unclear": 0
+    }
+    
+    mechanism_map = {
+        "additive": 3, "same pathway": 3,
+        "enzyme": 2, "metabolism": 2,
+        "pharmacodynamic": 1, "unknown": 1
+    }
+    
+    o_score = outcome_map.get(signals.get("outcome", "mild"), 1)
+    e_score = evidence_map.get(signals.get("evidence", "weak/unclear"), 0)
+    m_score = mechanism_map.get(signals.get("mechanism", "unknown"), 1)
+    
+    total = o_score + e_score + m_score
+    
+    if total >= 10:
+        recommendation = "Avoid combination. High risk of serious adverse effects."
+    elif total >= 5:
+        recommendation = "Use with caution. Monitoring advised."
+    else:
+        recommendation = "Safe under normal conditions."
 
-def pick_primary_interaction(direct_interactions: List[dict]):
-    if not direct_interactions:
-        return None
-    return sorted(
-        direct_interactions,
-        key=lambda row: (
-            severity_rank(row.get("severity")),
-            str(row.get("id", "")),
-        ),
-        reverse=True,
-    )[0]
-
-def build_structured_recommendation(primary_row: dict):
-    severity = (primary_row.get("severity") or "Moderate").strip().capitalize()
-    if severity in {"High", "Severe"}:
-        return "Avoid this combination unless a clinician explicitly approves it; monitor for bleeding/bruising and seek medical advice before use."
-    if severity == "Moderate":
-        return "Use with caution and clinician guidance; monitor for adverse effects and consider safer alternatives where possible."
-    return "No major interaction flagged in current database rows; still verify with a clinician for patient-specific safety."
-
-def map_candidates_to_medicine_response(candidates: List[dict], limit: int = 5):
-    mapped = []
-    for candidate in candidates[:limit]:
-        candidate_id = candidate.get("id")
-        mapped.append(
-            {
-                "id": int(candidate_id) if isinstance(candidate_id, int) or str(candidate_id).isdigit() else 0,
-                "brand_name": candidate.get("name") or "",
-                "generic_name": candidate.get("name") or "",
-                "strength": "",
-                "manufacturer": "",
-                "category": candidate.get("type") or "",
-                "confidence": 1.0,
-            }
-        )
-    return mapped
-
-@app.get("/")
-async def root():
-    return {"message": "Pharma4u API is running", "version": "1.0.0"}
-
-@app.get("/api/health")
-async def health_check():
+    if total >= 5:
+        severity = "Significant Interaction"
+    else:
+        severity = "No Significant Interaction"
+        
     return {
-        "status": "healthy",
-        "supabase_configured": supabase_configured(),
-        "supabase_tables": {
-            "allopathy": SUPABASE_ALLOPATHY_TABLE,
-            "ayurveda": SUPABASE_AYURVEDA_TABLE,
-            "interaction": SUPABASE_INTERACTION_TABLE,
+        "severity": severity,
+        "recommendation": recommendation,
+        "score": total,
+        "breakdown": {
+            "outcome": {"label": signals.get("outcome"), "score": o_score},
+            "evidence": {"label": signals.get("evidence"), "score": e_score},
+            "mechanism": {"label": signals.get("mechanism"), "score": m_score},
+        }
+    }
+
+
+def _build_scoring_from_raw(outcome_score: int, mechanism_score: int, evidence_score: int, scan_res: dict) -> dict:
+    """Build a scoring result directly from raw keyword-scanner numeric scores.
+    This bypasses the label→score mapping in compute_severity, which can fail
+    when keyword labels (e.g. 'ulcer', 'fda') don't match the AI vocabulary."""
+    total = outcome_score + mechanism_score + evidence_score
+    if total >= 10:
+        recommendation = "Avoid combination. High risk of serious adverse effects."
+    elif total >= 5:
+        recommendation = "Use with caution. Monitoring advised."
+    else:
+        recommendation = "Safe under normal conditions."
+
+    if total >= 5:
+        severity = "Significant Interaction"
+    else:
+        severity = "No Significant Interaction"
+
+    return {
+        "severity": severity,
+        "recommendation": recommendation,
+        "score": total,
+        "breakdown": {
+            "outcome": {"label": scan_res.get("outcome_label", "unknown"), "score": outcome_score},
+            "evidence": {"label": scan_res.get("evidence_label", "unknown"), "score": evidence_score},
+            "mechanism": {"label": scan_res.get("mechanism_label", "unknown"), "score": mechanism_score},
+        }
+    }
+
+
+# Keyword dictionaries for deterministic snippet scanning
+OUTCOME_KEYWORDS = {
+    5: [  # Life-threatening / Death
+        "death", "fatal", "fatality", "life-threatening", "life threatening",
+        "cardiac arrest", "myocardial infarction",
+        "cerebral hemorrhage", "intracranial bleeding", "anaphylaxis",
+        "respiratory failure", "organ failure",
+    ],
+    4: [  # Hospitalization
+        "hospitalization", "hospitalisation", "emergency room", "emergency department",
+        "icu", "intensive care", "transfusion", "surgery required",
+        "internal bleeding",
+        "major bleeding", "hemorrhage", "haemorrhage", "renal failure",
+        "kidney failure", "liver damage", "hepatotoxicity",
+    ],
+    3: [  # Serious
+        "serious", "significant risk",
+        "gastrointestinal bleeding", "gi bleeding",
+        "bleeding risk", "blood thinner", "anticoagulant",
+        "increased risk of bleeding", "prolonged bleeding", "bruising",
+        "hypertension", "high blood pressure", "kidney damage", "nephrotoxicity",
+        "serotonin syndrome", "seizure", "arrhythmia",
+    ],
+    2: [  # Moderate
+        "moderate", "caution", "monitor", "reduced efficacy",
+        "ulcer", "stomach ulcer", "peptic ulcer",
+        "decreased effectiveness", "nausea", "vomiting", "dizziness",
+        "headache", "drowsiness", "interaction", "may interact",
+        "should not be taken together", "avoid combining",
+    ],
+}
+
+MECHANISM_KEYWORDS = {
+    "additive": [
+        "additive", "same pathway", "both inhibit", "both affect",
+        "dual antiplatelet", "combined effect", "synergistic",
+        "both nsaid", "both anti-inflammatory", "both blood thinner",
+        "cox-1", "cox-2", "cyclooxygenase", "platelet",
+        "prostaglandin", "antiplatelet", "anticoagulant",
+        "nsaid", "nonsteroidal", "anti-inflammatory",
+        "gastrointestinal", "combined irritant", "irritant effects",
+    ],
+    "enzyme": [
+        "cyp", "enzyme", "metabolism", "inhibitor", "inducer",
+        "p450", "cyp2c9", "cyp3a4", "cyp2d6", "pharmacokinetic",
+        "absorption", "bioavailability", "clearance",
+    ],
+    "pharmacodynamic": [
+        "pharmacodynamic", "receptor", "same mechanism",
+        "competitive", "antagonist", "agonist",
+    ],
+}
+
+EVIDENCE_KEYWORDS = {
+    3: [  # Strong — regulatory / authoritative
+        "fda", "nih", "who", "ema", "mhra", "cdc",
+        "black box warning", "boxed warning", "contraindicated",
+        "meta-analysis", "systematic review", "clinical trial",
+        "well-documented", "well documented", "established interaction",
+        "clinical guideline", "drug label", "prescribing information",
+    ],
+    2: [  # Moderate
+        "clinical study", "clinical studies", "research shows",
+        "evidence suggests", "studies indicate", "documented",
+        "known interaction", "reported cases", "peer-reviewed",
+        "randomized", "controlled trial",
+    ],
+    1: [  # Weak
+        "case report", "case study", "anecdotal", "may cause",
+        "possible interaction", "theoretical", "limited data",
+        "insufficient evidence", "unclear",
+    ],
+}
+
+
+def scan_snippets_for_signals(snippet_text: str) -> dict:
+    """Deterministic keyword scanner — analyzes raw web snippets for clinical
+    danger signals WITHOUT relying on LLM interpretation."""
+    text_lower = snippet_text.lower()
+
+    # ── Outcome score ──
+    outcome_score = 1
+    outcome_label = "mild"
+    for score in sorted(OUTCOME_KEYWORDS.keys(), reverse=True):
+        for keyword in OUTCOME_KEYWORDS[score]:
+            if keyword in text_lower:
+                if score > outcome_score:
+                    outcome_score = score
+                    outcome_label = keyword
+                break
+        if outcome_score >= score:
+            break
+
+    # ── Mechanism score ──
+    mechanism_score = 1
+    mechanism_label = "unknown"
+    # Additive = 3, enzyme = 2, pharmacodynamic = 2, unknown = 1
+    for mech_type, keywords in MECHANISM_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in text_lower:
+                if mech_type == "additive":
+                    mechanism_score = max(mechanism_score, 3)
+                    mechanism_label = "additive"
+                elif mech_type in ("enzyme", "pharmacodynamic"):
+                    mechanism_score = max(mechanism_score, 2)
+                    if mechanism_label != "additive":
+                        mechanism_label = mech_type
+                break
+
+    # ── Evidence score ──
+    evidence_score = 0
+    evidence_label = "unknown"
+    for score in sorted(EVIDENCE_KEYWORDS.keys(), reverse=True):
+        for keyword in EVIDENCE_KEYWORDS[score]:
+            if keyword in text_lower:
+                if score > evidence_score:
+                    evidence_score = score
+                    evidence_label = keyword
+                break
+        if evidence_score >= score:
+            break
+
+    return {
+        "outcome_score": outcome_score,
+        "outcome_label": outcome_label,
+        "mechanism_score": mechanism_score,
+        "mechanism_label": mechanism_label,
+        "evidence_score": evidence_score,
+        "evidence_label": evidence_label,
+    }
+
+
+def compute_severity_legacy(outcome_score: int, mechanism_score: int, evidence_score: int) -> str:
+    """Deterministic severity from composite score.
+       Total = Outcome (1-5) + Mechanism (1-3) + Evidence (0-3)  →  range 2-11
+       ≥ 8  → Severe
+       5-7  → Moderate
+       3-4  → Mild
+       0-2  → None
+    """
+    total = outcome_score + mechanism_score + evidence_score
+    if total >= 8:
+        return "Severe"
+    elif total >= 5:
+        return "Moderate"
+    elif total >= 3:
+        return "Mild"
+    return "None"
+
+
+def search_medical_literature_with_llama(medicines: List[str]) -> dict:
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return {"severity": "None", "recommendation": "", "summary": "Warning: beautifulsoup4 not installed."}
+
+    meds_str = " ".join(medicines)
+    if len(medicines) == 1:
+        query = f"{meds_str} clinical safety adverse effects profile"
+    else:
+        query = f"{meds_str} drug interaction clinical safety"
+    print(f"[Web Research] Query: {query}")
+
+    # ── Stage 1: Scrape web snippets ──
+    snippets = []
+    source_links = []
+    try:
+        url = 'https://html.duckduckgo.com/html/'
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        res = requests.post(url, data={'q': query}, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.text, 'html.parser')
+
+        for result in soup.find_all('div', class_='result__body')[:5]:
+            snip = result.find('a', class_='result__snippet')
+            if snip:
+                snippets.append(f"Snippet: {snip.text}")
+            link = result.find('a', class_='result__url')
+            if link and link.get('href'):
+                href = link.get('href')
+                if href.startswith('//'):
+                    href = 'https:' + href
+                source_links.append(f"\n- {href}")
+    except Exception as e:
+        print(f"[Web Research] HTML search failed: {e}")
+        return {"severity": "None", "summary": "Web search failed.", "recommendation": "Consult clinician."}
+
+    if not snippets:
+        return {"severity": "None", "summary": f"No literature found for {', '.join(medicines)}.", "recommendation": ""}
+
+    combined_text = "\n\n".join(snippets)
+
+    # ── Stage 2: Keywords ALWAYS run (reliable baseline) ──
+    scan_res = scan_snippets_for_signals(combined_text)
+    kw_outcome = scan_res["outcome_score"]
+    kw_mechanism = scan_res["mechanism_score"]
+    kw_evidence = scan_res["evidence_score"]
+    print(f"[Severity Engine] Keyword scan: outcome={kw_outcome}/{scan_res['outcome_label']}, "
+          f"mechanism={kw_mechanism}/{scan_res['mechanism_label']}, "
+          f"evidence={kw_evidence}/{scan_res['evidence_label']}")
+
+    # Try AI extraction as enhancement
+    ai_signals = extract_signals_with_llama(combined_text, medicines)
+    if ai_signals:
+        print(f"[Severity Engine] AI signals: {ai_signals}")
+        ai_scoring = compute_severity(ai_signals)
+        # Use AI score only if it's HIGHER than keyword score (AI may find nuance)
+        kw_total = kw_outcome + kw_mechanism + kw_evidence
+        if ai_scoring["score"] > kw_total:
+            print(f"[Severity Engine] AI score ({ai_scoring['score']}) > keyword score ({kw_total}), using AI")
+            scoring_res = ai_scoring
+        else:
+            print(f"[Severity Engine] Keyword score ({kw_total}) >= AI score ({ai_scoring['score']}), using keywords")
+            scoring_res = compute_severity({
+                "outcome": scan_res["outcome_label"],
+                "evidence": scan_res["evidence_label"],
+                "mechanism": scan_res["mechanism_label"],
+            })
+            # If label-based mapping fails (unknown keyword), fallback to raw scores
+            if scoring_res["score"] < kw_total:
+                scoring_res = _build_scoring_from_raw(kw_outcome, kw_mechanism, kw_evidence, scan_res)
+    else:
+        print("[Severity Engine] AI extraction failed, using keyword scores directly")
+        scoring_res = _build_scoring_from_raw(kw_outcome, kw_mechanism, kw_evidence, scan_res)
+
+    print(f"[Severity Engine] Final: {scoring_res['severity']} (Score: {scoring_res['score']})")
+
+    # ── Stage 3: LLM summarization (for human-readable output) ──
+    prompt_type = "single drug clinical safety profile" if len(medicines) == 1 else "interaction summary"
+    prompt = (
+        f"You are a clinical pharmacist. Based ONLY on these snippets, write a clinical summary of the {prompt_type} for {', '.join(medicines)}.\n\n"
+        f"Snippets:\n{combined_text[:2000]}\n\n"
+        "Output EXACTLY in this format:\n"
+        "Recommendation: [One actionable sentence]\n"
+        "Summary: [2-3 sentence clinical summary]\n\n"
+        "Response:"
+    )
+
+    summary_out = ""
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": "tinyllama", "prompt": prompt, "stream": False, "options": {"temperature": 0.0}},
+            timeout=40,
+        )
+        if response.status_code == 200:
+            summary_out = response.json().get("response", "").strip()
+    except Exception as e:
+        print(f"[Severity Engine] LLM summary exception: {e}")
+
+    rec_match = re.search(r"Recommendation:\s*([^\n]+)", summary_out, re.IGNORECASE)
+    sum_match = re.search(r"Summary:\s*(.+?)(?=\n(?:Recommendation:|$)|$)", summary_out, re.IGNORECASE | re.DOTALL)
+
+    rec_text = rec_match.group(1).strip() if rec_match else "Consult your doctor before combining these medications."
+    sum_text = sum_match.group(1).strip() if sum_match else (summary_out if summary_out else "No definitive interactions found.")
+
+    if source_links:
+        unique_links = list(dict.fromkeys(source_links))
+        sum_text += "\n\n**Sources:**" + "".join(unique_links)
+
+    return {
+        "severity": scoring_res["severity"],
+        "recommendation": scoring_res.get("recommendation", rec_text),
+        "summary": sum_text,
+        "signals": {
+            "score": scoring_res["score"],
+            "breakdown": scoring_res["breakdown"]
         },
     }
 
-@app.post("/api/ocr", response_model=OCRResponse)
-async def extract_text_from_image(file: UploadFile = File(...)):
-    """
-    Extract text from uploaded medicine image using Tesseract OCR
-    """
+
+@app.post("/api/ocr")
+async def ocr_endpoint(file: UploadFile = File(...)):
+    """Raw OCR: extract text from an uploaded prescription image."""
     try:
-        if not file.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail="File must be an image")
-        
         contents = await file.read()
         image = Image.open(io.BytesIO(contents))
-        
-        extracted_text = perform_ocr(image)
-        
-        if not extracted_text or extracted_text == "":
-            return {
-                "success": False,
-                "error": "No text found in image"
-            }
-        
-        return {
-            "success": True,
-            "extracted_text": extracted_text.strip()
-        }
-    
+        text = perform_ocr(image)
+        if text:
+            return OCRResponse(success=True, extracted_text=text)
+        else:
+            return OCRResponse(success=False, error="No text could be extracted from the image.")
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-@app.post("/api/ask-ai", response_model=AIResponse)
-async def ask_tinyllama(prompt: str):
-    """
-    Send a prompt to TinyLlama AI running via Ollama
-    
-    Make sure you have Ollama running:
-    $ ollama run tinyllama
-    """
-    try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "tinyllama",
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=30
-        )
-        
-        if response.status_code != 200:
-            return {
-                "success": False,
-                "error": f"Ollama error: {response.status_code}"
-            }
-        
-        data = response.json()
-        ai_response = data.get("response", "").strip()
-        
-        if not ai_response:
-            return {
-                "success": False,
-                "error": "No response from TinyLlama"
-            }
-        
-        return {
-            "success": True,
-            "response": ai_response
-        }
-    
-    except requests.exceptions.ConnectionError:
-        return {
-            "success": False,
-            "error": "Cannot connect to Ollama. Make sure it's running: ollama run tinyllama"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-@app.post("/api/search/manual")
-async def manual_search(query: str):
-    """Manual text search for medicines (Supabase)"""
-    if not query or len(query.strip()) == 0:
-        raise HTTPException(status_code=400, detail="Query cannot be empty")
-
-    candidates, error = query_medicine_candidates(query, limit=10)
-    results = map_candidates_to_medicine_response(candidates, limit=10)
-    
-    if not results:
-        return {
-            "success": False,
-            "error": error or "No medicines found in Supabase",
-            "results": []
-        }
-    
-    return {"success": True, "results": results}
-
-@app.post("/api/search/selected", response_model=List[MedicineResponse])
-async def search_selected_text(request: TextSelectionRequest):
-    """Search medicines from Supabase using OCR selected text"""
-    if not request.selected_text or len(request.selected_text.strip()) == 0:
-        raise HTTPException(status_code=400, detail="Selected text cannot be empty")
-
-    candidates, _ = query_medicine_candidates(request.selected_text, limit=10)
-    results = map_candidates_to_medicine_response(candidates, limit=10)
-    
-    if not results:
-        raise HTTPException(status_code=404, detail="No medicines found in Supabase matching the selected text")
-    
-    return results
+        print(f"[/api/ocr] Error: {e}")
+        return OCRResponse(success=False, error=str(e))
 
 
 @app.post("/api/analyze-medicine")
-async def analyze_medicine_image(files: List[UploadFile] = File(...)):
-    """
-    Analyze medicine image: extract text → search Supabase
-    """
+async def analyze_medicine_endpoint(files: UploadFile = File(...)):
+    """OCR + medicine-name extraction from an uploaded prescription image."""
     try:
-        if not files:
-            raise HTTPException(status_code=400, detail="No files provided")
+        contents = await files.read()
+        image = Image.open(io.BytesIO(contents))
 
-        combined_text = []
-        for file in files:
-            if not file.content_type.startswith("image/"):
-                continue
-            contents = await file.read()
-            image = Image.open(io.BytesIO(contents))
-            extracted_text = perform_ocr(image)
-            if extracted_text:
-                combined_text.append(extracted_text)
-        
-        extracted_text = " ".join(combined_text).strip()
-        print(f"[analyze-medicine] OCR extracted text: '{extracted_text}'")
-        
-        if not extracted_text:
+        raw_text = perform_ocr(image)
+        print(f"[/api/analyze-medicine] Raw OCR text: {raw_text[:120] if raw_text else '(empty)'}")
+
+        if not raw_text or len(raw_text.strip()) < 3:
             return {
                 "success": False,
-                "error": "No text found in image"
+                "extracted_text": None,
+                "medicines": [],
+                "error": "No text could be extracted from the image. Try a clearer photo.",
             }
-        
-        all_candidates = []
-        
-        # Strategy 1: Use LLaMA to intelligently pick medicine names
-        llama_extracted, llama_error = extract_medicines_with_llama(extracted_text)
-        print(f"[analyze-medicine] LLaMA extracted: {llama_extracted}, error: {llama_error}")
-        
-        if llama_extracted:
-            for med in llama_extracted:
-                candidates, _ = query_medicine_candidates(med, limit=3)
-                print(f"[analyze-medicine] DB query '{med}' => {len(candidates)} candidates")
-                all_candidates.extend(candidates)
-        
-        # Strategy 2: Also try each significant word from the raw OCR text directly
-        # This catches medicines that LLaMA might miss
-        words = re.findall(r'\b[A-Za-z]{4,20}\b', extracted_text)
-        unique_words = list(set(w.lower() for w in words))
-        print(f"[analyze-medicine] Raw word candidates: {unique_words}")
-        
-        seen_candidate_ids = set(f"{c.get('type')}-{c.get('id')}" for c in all_candidates)
-        for word in unique_words[:15]:
-            candidates, _ = query_medicine_candidates(word, limit=2)
-            for c in candidates:
-                cid = f"{c.get('type')}-{c.get('id')}"
-                if cid not in seen_candidate_ids:
-                    seen_candidate_ids.add(cid)
-                    all_candidates.append(c)
-                    print(f"[analyze-medicine] Word-search '{word}' found new match: {c.get('name')}")
 
-        search_results = map_candidates_to_medicine_response(all_candidates, limit=10)
-        print(f"[analyze-medicine] Final matching_medicines count: {len(search_results)}")
-        
+        # Try LLaMA medicine extraction; fall back to inline heuristic
+        medicines, llama_err = extract_medicines_with_llama(raw_text)
+        if not medicines:
+            medicines = extract_inline_medicines(raw_text)
+
         return {
             "success": True,
-            "extracted_text": extracted_text,
-            "matching_medicines": search_results
+            "extracted_text": raw_text,
+            "medicines": medicines,
         }
-    
     except Exception as e:
-        print(f"[analyze-medicine] Exception: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        print(f"[/api/analyze-medicine] Error: {e}")
+        return {"success": False, "extracted_text": None, "medicines": [], "error": str(e)}
 
-@app.post("/api/explain-medicine")
-async def explain_medicine_from_image(files: List[UploadFile] = File(...)):
-    """
-    Analyze medicine image and explain using AI:
-    1. Extract text from image
-    2. Send to TinyLlama for explanation
-    """
-    try:
-        if not files:
-            raise HTTPException(status_code=400, detail="No files provided")
-        
-        combined_text = []
-        for file in files:
-            if not file.content_type.startswith("image/"):
-                continue
-            contents = await file.read()
-            image = Image.open(io.BytesIO(contents))
-            extracted_text = perform_ocr(image)
-            if extracted_text:
-                combined_text.append(extracted_text)
-                
-        extracted_text = " ".join(combined_text).strip()
-        
-        if not extracted_text:
-            return {
-                "success": False,
-                "error": "No text found in image"
-            }
-        
-        prompt = f"Explain the following medicine information: {extracted_text}. Provide uses, dosage, and side effects."
-        
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "tinyllama",
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=30
-        )
-        
-        if response.status_code != 200:
-            return {
-                "success": False,
-                "error": "Failed to get AI explanation",
-                "extracted_text": extracted_text
-            }
-        
-        ai_response = response.json().get("response", "").strip()
-        
-        return {
-            "success": True,
-            "extracted_text": extracted_text,
-            "explanation": ai_response
-        }
-    
-    except requests.exceptions.ConnectionError:
-        return {
-            "success": False,
-            "error": "Ollama not running. Start with: ollama run tinyllama"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
 
 @app.post("/api/check-interactions")
 async def check_drug_interactions(request: InteractionCheckRequest):
-    """
-    Check for drug interactions using Llama AI (no database required):
-    1. Accepts list of medicine names
-    2. Uses Llama to understand, validate, and analyze interactions
-    3. Returns Llama's assessment of safety, side effects, and recommendations
-    
-    Database medicines (when provided later) will enhance validation.
-    """
     try:
         if not request.medicines or len(request.medicines) == 0:
             raise HTTPException(status_code=400, detail="At least one medicine name is required")
@@ -849,275 +925,42 @@ async def check_drug_interactions(request: InteractionCheckRequest):
         explicit_medicines = dedupe_preserve_order(base_medicines + inline_from_description)
 
         llama_extracted, llama_error = ([], None)
-        if len(explicit_medicines) < 2 and text_for_extraction:
+        if len(explicit_medicines) < 1 and text_for_extraction:
             llama_extracted, llama_error = extract_medicines_with_llama(text_for_extraction)
 
-        effective_medicines = explicit_medicines if len(explicit_medicines) >= 2 else dedupe_preserve_order(explicit_medicines + llama_extracted)
-        if len(effective_medicines) < 2:
-            raise HTTPException(status_code=400, detail="At least two medicine names are required for interaction checks")
+        effective_medicines = explicit_medicines if len(explicit_medicines) >= 1 else dedupe_preserve_order(explicit_medicines + llama_extracted)
+        if len(effective_medicines) < 1:
+            raise HTTPException(status_code=400, detail="At least one medicine name is required for analysis")
 
-        medicines_str = ", ".join(effective_medicines)
-        matched_by_input, direct_interactions, supabase_errors, pairwise_interactions = build_supabase_context(effective_medicines)
-        evidence_mode = "HAS_EVIDENCE" if len(direct_interactions) > 0 else "NO_EVIDENCE"
+        medicine_summaries = {}
+        target_meds = effective_medicines[:2]
+        for med in target_meds:
+            medicine_summaries[med] = get_medicine_summary_llama(med)
 
-        extraction_notes = []
-        if supabase_errors:
-            extraction_notes.extend(supabase_errors)
+        ai_data = search_medical_literature_with_llama(target_meds)
 
-        if evidence_mode == "NO_EVIDENCE":
-            return {
-                "success": True,
-                "input_medicines": request.medicines,
-                "effective_medicines": effective_medicines,
-                "matched_medicines": matched_by_input,
-                "direct_interactions": direct_interactions,
-                "pairwise_interactions": pairwise_interactions,
-                "supabase_rows_found": 0,
-                "supabase_lookup_errors": extraction_notes,
-                "interaction_analysis": "Insufficient evidence for this combination.",
-                "safety_recommendations": "No evidence-based recommendation available; consult clinician.",
-                "note": "Supabase-first mode: no interaction rows found. Llama response skipped to prevent unsupported claims."
-            }
-
-        primary_interaction = pick_primary_interaction(direct_interactions)
-        primary_severity = (primary_interaction.get("severity") or "Moderate").strip().capitalize()
-        primary_ingredient = (primary_interaction.get("active_ingredient") or primary_interaction.get("ingredient") or "Unknown ingredient").strip()
-
-        unique_descriptions = []
-        seen_descriptions = set()
-        for row in direct_interactions:
-            description = (row.get("description") or "").strip()
-            if description and description not in seen_descriptions:
-                seen_descriptions.add(description)
-                unique_descriptions.append(description)
-        clinical_explanation = " ".join(unique_descriptions[:2]) if unique_descriptions else "Interaction evidence found in database rows."
-
-        # Build a clean medicine name list from the DB matches, not the raw OCR text
-        clean_med_names = set()
-        for input_name, candidates in matched_by_input.items():
-            for c in candidates:
-                name = c.get("name", "")
-                if name:
-                    clean_med_names.add(name)
-        # Fallback: if nothing matched from DB, use the effective list but only short clean names
-        if not clean_med_names:
-            for m in effective_medicines:
-                cleaned = re.sub(r'[^A-Za-z\s]', '', m).strip()
-                if cleaned and len(cleaned) <= 30:
-                    clean_med_names.add(cleaned)
-        clean_medicines_str = ", ".join(sorted(clean_med_names)) if clean_med_names else medicines_str
-
-        interaction_summary = (
-            f"{clean_medicines_str}: {primary_severity} interaction identified. "
-            f"Primary ingredient: {primary_ingredient}."
-        )
-        recommendation = build_structured_recommendation(primary_interaction)
-        
         return {
             "success": True,
             "input_medicines": request.medicines,
             "effective_medicines": effective_medicines,
-            "matched_medicines": matched_by_input,
-            "direct_interactions": direct_interactions,
-            "pairwise_interactions": pairwise_interactions,
-            "supabase_rows_found": len(direct_interactions),
-            "supabase_lookup_errors": extraction_notes,
-            "interaction_analysis": interaction_summary,
-            "clinical_explanation": clinical_explanation,
-            "safety_recommendations": recommendation,
+            "matched_medicines": {},
+            "direct_interactions": [{"severity": ai_data["severity"]}],
+            "pairwise_interactions": [],
+            "supabase_rows_found": 0,
+            "supabase_lookup_errors": [],
+            "interaction_analysis": "AI severity evaluated.",
+            "safety_recommendations": ai_data["recommendation"],
+            "clinical_explanation": "",
+            "web_research_summary": ai_data["summary"],
+            "medicine_summaries": medicine_summaries,
             "confidence": 95,
-            "note": "Supabase-first structured mode. Output is grounded in database evidence rows."
+            "signals": ai_data.get("signals"),
+            "note": "Pure AI live scraping executed."
         }
-    
     except requests.exceptions.ConnectionError:
-        return {
-            "success": False,
-            "error": "Cannot connect to Ollama. Make sure it's running: ollama run tinyllama"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-# ─── Interaction Submission & Admin Review ────────────────────────────
-
-@app.post("/api/interactions/submit")
-async def submit_interaction(req: InteractionSubmitRequest):
-    """User submits a new interaction — stored as 'pending'"""
-    if not supabase_configured():
-        return {"success": False, "error": "Supabase not configured"}
-
-    # ── Resolve custom (not-in-DB) medicines ─────────────────────────────
-    def ensure_medicine_id(med_id: Optional[int], med_name: Optional[str], med_type: str) -> tuple:
-        """If id is None, upsert the medicine by name and return its real id."""
-        if med_id is not None:
-            return med_id, None
-        if not med_name or not med_name.strip():
-            return None, "Medicine name is required when id is not provided"
-        table = SUPABASE_ALLOPATHY_TABLE if med_type == "allopathy" else SUPABASE_AYURVEDA_TABLE
-        name_clean = med_name.strip()
-        # Atomic upsert: insert or do nothing on name conflict, always return id
-        try:
-            resp = requests.post(
-                f"{SUPABASE_URL}/rest/v1/{table}",
-                headers={
-                    **supabase_headers(),
-                    "Content-Type": "application/json",
-                    "Prefer": "return=representation,resolution=merge-duplicates",
-                },
-                json={"name": name_clean},
-                timeout=15,
-            )
-            if resp.status_code in (200, 201):
-                rows = resp.json()
-                if isinstance(rows, list) and rows:
-                    return rows[0]["id"], None
-            # Fallback: explicit lookup (handles edge-case where upsert returns 204)
-            existing, _ = supabase_get(table, {"select": "id", "name": f"eq.{name_clean}", "limit": 1})
-            if existing:
-                return existing[0]["id"], None
-            return None, f"Could not upsert medicine '{name_clean}': {resp.status_code} {resp.text}"
-        except Exception as e:
-            return None, str(e)
-
-    med1_id, err1 = ensure_medicine_id(req.med1_id, req.med1_name, req.med1_type)
-    if err1:
-        return {"success": False, "error": f"Medicine 1: {err1}"}
-
-    med2_id, err2 = ensure_medicine_id(req.med2_id, req.med2_name, req.med2_type)
-    if err2:
-        return {"success": False, "error": f"Medicine 2: {err2}"}
-
-    payload = {
-        "med1_type": req.med1_type,
-        "med1_id": med1_id,
-        "med2_type": req.med2_type,
-        "med2_id": med2_id,
-        "active_ingredient": req.active_ingredient or None,
-        "severity": req.severity,
-        "description": req.description,
-        "source_link": req.source_link or None,
-        "status": "pending",
-    }
-    if req.created_by:
-        payload["created_by"] = req.created_by
-
-    try:
-        resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/{SUPABASE_INTERACTION_TABLE}",
-            headers={**supabase_headers(), "Content-Type": "application/json", "Prefer": "return=representation"},
-            json=payload,
-            timeout=15,
-        )
-        if resp.status_code in (200, 201):
-            rows = resp.json()
-            return {"success": True, "interaction": rows[0] if isinstance(rows, list) and rows else rows}
-        return {"success": False, "error": f"Supabase error {resp.status_code}: {resp.text}"}
+        return {"success": False, "error": "Cannot connect to Ollama. Make sure it's running: ollama run tinyllama"}
     except Exception as e:
         return {"success": False, "error": str(e)}
-
-
-@app.get("/api/interactions/pending")
-async def get_pending_interactions():
-    """Admin: list all pending interactions"""
-    if not supabase_configured():
-        return {"success": False, "error": "Supabase not configured"}
-
-    rows, error = supabase_get(
-        SUPABASE_INTERACTION_TABLE,
-        {"select": "*", "status": "eq.pending", "order": "created_at.desc", "limit": 50},
-    )
-    if error:
-        return {"success": False, "error": error, "interactions": []}
-    return {"success": True, "interactions": rows}
-
-
-@app.post("/api/interactions/{interaction_id}/approve")
-async def approve_interaction(interaction_id: int, req: InteractionReviewRequest):
-    """Admin: approve a pending interaction"""
-    if not supabase_configured():
-        return {"success": False, "error": "Supabase not configured"}
-
-    update_payload = {"status": "approved"}
-    if req.approved_by:
-        update_payload["approved_by"] = req.approved_by
-
-    try:
-        resp = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/{SUPABASE_INTERACTION_TABLE}?id=eq.{interaction_id}",
-            headers={**supabase_headers(), "Content-Type": "application/json", "Prefer": "return=representation"},
-            json=update_payload,
-            timeout=15,
-        )
-        if resp.status_code == 200:
-            rows = resp.json()
-            return {"success": True, "interaction": rows[0] if isinstance(rows, list) and rows else rows}
-        return {"success": False, "error": f"Supabase error {resp.status_code}: {resp.text}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-@app.post("/api/interactions/{interaction_id}/reject")
-async def reject_interaction(interaction_id: int, req: InteractionReviewRequest):
-    """Admin: reject a pending interaction"""
-    if not supabase_configured():
-        return {"success": False, "error": "Supabase not configured"}
-
-    update_payload = {"status": "rejected"}
-    if req.approved_by:
-        update_payload["approved_by"] = req.approved_by
-
-    try:
-        resp = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/{SUPABASE_INTERACTION_TABLE}?id=eq.{interaction_id}",
-            headers={**supabase_headers(), "Content-Type": "application/json", "Prefer": "return=representation"},
-            json=update_payload,
-            timeout=15,
-        )
-        if resp.status_code == 200:
-            rows = resp.json()
-            return {"success": True, "interaction": rows[0] if isinstance(rows, list) and rows else rows}
-        return {"success": False, "error": f"Supabase error {resp.status_code}: {resp.text}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/api/medicines/search")
-async def search_medicines_list(q: str = "", type: str = ""):
-    """Search medicines by name for the submission form dropdowns"""
-    if not q or len(q.strip()) < 2:
-        return {"success": True, "results": []}
-    
-    results = []
-    tables = []
-    if type == "allopathy":
-        tables = [SUPABASE_ALLOPATHY_TABLE]
-    elif type == "ayurveda":
-        tables = [SUPABASE_AYURVEDA_TABLE]
-    else:
-        tables = [SUPABASE_ALLOPATHY_TABLE, SUPABASE_AYURVEDA_TABLE]
-    
-    for table in tables:
-        rows, _ = supabase_get(table, {"select": "id,name", "name": f"ilike.*{q.strip()}*", "limit": "10"})
-        category = "allopathy" if table == SUPABASE_ALLOPATHY_TABLE else "ayurveda"
-        for row in rows:
-            results.append({"id": row.get("id"), "name": row.get("name"), "type": category})
-    
-    return {"success": True, "results": results}
-
-
-@app.get("/api/medicines/lookup")
-async def lookup_medicine(id: int, type: str = "allopathy"):
-    """Resolve a medicine ID to its name"""
-    if not supabase_configured():
-        return {"success": False, "error": "Supabase not configured"}
-    
-    table = SUPABASE_ALLOPATHY_TABLE if type == "allopathy" else SUPABASE_AYURVEDA_TABLE
-    rows, error = supabase_get(table, {"select": "id,name", "id": f"eq.{id}", "limit": "1"})
-    if rows:
-        return {"success": True, "medicine": {"id": rows[0].get("id"), "name": rows[0].get("name"), "type": type}}
-    return {"success": False, "error": error or "Not found"}
 
 if __name__ == "__main__":
     import uvicorn

@@ -4,6 +4,12 @@ python-multipart==0.0.6
 
 pytesseract
 pillow>=10.0.0
+fastapi==0.109.0
+uvicorn==0.27.0
+python-multipart==0.0.6
+
+pytesseract
+pillow>=10.0.0
 opencv-python==4.9.0.80
 
 pydantic>=2.6
@@ -12,3 +18,4 @@ requests
 
 Cython
 easyocr
+beautifulsoup4

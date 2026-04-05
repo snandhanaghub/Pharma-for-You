@@ -24,18 +24,24 @@ const CheckOCRPage = () => {
     try {
       const response = await api.analyzeMedicineImage(selectedFile);
 
-      if (response.success && response.extracted_text) {
-        const extractedTexts = response.extracted_text
-          .split(/[\n,;]/)
-          .map(text => text.trim())
-          .filter(text => text.length > 2);
-        
-        const uniqueTexts = [...new Set(extractedTexts)];
-        
-        setDetectedDrugs(uniqueTexts);
-        
-        if (uniqueTexts.length === 0) {
-          setError('No text detected in the image. Please try another image with clear text.');
+      if (response.success) {
+        // Prefer the parsed medicines list; fall back to splitting extracted_text
+        let drugs = [];
+        if (Array.isArray(response.medicines) && response.medicines.length > 0) {
+          drugs = response.medicines;
+        } else if (response.extracted_text) {
+          drugs = [...new Set(
+            response.extracted_text
+              .split(/[\n,;]/)
+              .map(t => t.trim())
+              .filter(t => t.length > 2)
+          )];
+        }
+
+        setDetectedDrugs(drugs);
+
+        if (drugs.length === 0) {
+          setError('No medicines detected in the image. Please try a clearer photo.');
         }
       } else {
         setError(response.error || 'Failed to extract text from image.');
@@ -55,7 +61,7 @@ const CheckOCRPage = () => {
   };
 
   const handleAnalyze = async () => {
-    if (detectedDrugs.length < 2) return;
+    if (detectedDrugs.length < 1) return;
     
     setLoading(true);
     setError(null);
@@ -81,16 +87,19 @@ const CheckOCRPage = () => {
         const interactionSummary = response.interaction_analysis || 'No summary available.';
         const clinicalExplanation = response.clinical_explanation || 'No clinical explanation available.';
         const recommendation = response.safety_recommendations || 'Consult your clinician for final guidance.';
+        const webResearchSummary = response.web_research_summary || '';
         
         navigate('/result', { 
           state: { 
             drugA: detectedDrugs[0],
-            drugB: detectedDrugs[1],
+            drugB: detectedDrugs[1] || null,
+            medicines: detectedDrugs,
             severity,
             confidence: response.confidence || 85,
             interactionSummary,
             clinicalExplanation,
             recommendation,
+            webResearchSummary,
           } 
         });
       } else {
@@ -160,9 +169,9 @@ const CheckOCRPage = () => {
                     variant="primary" 
                     fullWidth={true}
                     onClick={handleAnalyze}
-                    disabled={detectedDrugs.length < 2}
+                    disabled={detectedDrugs.length < 1}
                   >
-                    Analyze Interactions
+                    {detectedDrugs.length === 1 ? 'Analyze Drug Safety' : 'Analyze Interactions'}
                   </Button>
                 </>
               ) : (

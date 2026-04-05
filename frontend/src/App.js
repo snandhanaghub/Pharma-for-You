@@ -8,7 +8,6 @@ import SignupPage from './pages/SignupPage';
 import ChatAssistantPage from './pages/ChatAssistantPage';
 import ResultPage from './pages/ResultPage';
 import AccountPage from './pages/AccountPage';
-import SubmitInteractionPage from './pages/SubmitInteractionPage';
 
 import { useAuth } from './context/AuthContext';
 
@@ -68,12 +67,7 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/submit-interaction" element={
-            <ProtectedRoute>
-              <SubmitInteractionPage />
-            </ProtectedRoute>
-          } />
-          
+
           <Route path="/account" element={
             <ProtectedRoute>
               <AccountPage />

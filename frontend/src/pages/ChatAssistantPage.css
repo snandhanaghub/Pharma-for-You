@@ -106,17 +106,25 @@
 /* ── Structured result card ─────────────────────────── */
 .result-card-bubble {
   width: 100%;
-  border: 2px solid;
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  font-size: 14px;
+  border-radius: 16px;
+  padding: 24px;
+  font-size: 15px;
   line-height: 1.6;
-  animation: fadeSlideIn 0.25s ease;
+  animation: fadeSlideIn 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  color: #F3E8DE;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+.result-card-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.rcb-content {
+  position: relative;
+  z-index: 1;
 }
 
 .rcb-header {
@@ -124,56 +132,75 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(243, 232, 222, 0.2);
 }
 
 .rcb-title {
-  font-size: 15px;
+  font-size: 1.4rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #F3E8DE;
 }
 
 .rcb-badge {
-  display: inline-block;
-  padding: 3px 12px;
-  border-radius: 999px;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50px;
+  padding: 6px 16px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .rcb-meta {
-  font-size: 12px;
-  color: var(--text-muted, #6b7280);
-  margin-bottom: 8px;
+  font-size: 13px;
+  color: rgba(243, 232, 222, 0.8);
+  margin-bottom: 16px;
+  font-weight: 500;
 }
 
 .rcb-divider {
-  height: 1px;
-  background: currentColor;
-  opacity: 0.15;
-  margin: 10px 0;
+  display: none;
 }
 
 .rcb-section {
-  margin-top: 10px;
+  margin-top: 24px;
 }
 
 .rcb-label {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted, #6b7280);
-  margin-bottom: 4px;
+  color: #F3E8DE;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .rcb-text {
-  font-size: 14px;
-  color: var(--text-body, #374151);
-  line-height: 1.65;
+  font-size: 15px;
+  color: rgba(243, 232, 222, 0.9);
+  line-height: 1.6;
+}
+
+.rcb-text strong {
+  color: #F3E8DE;
+  font-weight: 700;
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.rcb-text a {
+  color: #F3E8DE;
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+.rcb-text a:hover {
+  opacity: 1;
 }
 
 /* ── Input area ─────────────────────────────────────── */
@@ -189,27 +216,71 @@
   overflow-x: auto;
 }
 
+.chat-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
 .chat-text-input {
   width: 100%;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  padding: 12px;
+  border-radius: var(--radius-large);
+  padding: 14px 96px 14px 16px;
   font-size: 15px;
   color: var(--text-body);
   background: white;
   box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .chat-text-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 99,102,241), 0.12);
+  box-shadow: 0 0 0 3px rgba(37, 76, 66, 0.1);
 }
 
-.chat-actions {
+.chat-input-actions {
+  position: absolute;
+  right: 8px;
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  color: var(--primary);
+}
+
+.icon-btn.send-ready {
+  background: var(--primary);
+  color: var(--color-beige);
+}
+
+.icon-btn.send-ready:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .hidden-file-input {
